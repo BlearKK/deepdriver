@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL 解析测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+        }
+        .error {
+            color: #D8000C;
+            background-color: #FFD2D2;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .success {
+            color: #4F8A10;
+            background-color: #DFF2BF;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>URL 解析测试</h1>
+    
+    <div class="input-group">
+        <label for="url-input">输入要解析的 URL（每行一个）：</label>
+        <textarea id="url-input" placeholder="https://vertexaisearch.google.com/url/proxy?url=..."></textarea>
+    </div>
+    
+    <div class="input-group">
+        <label for="timeout">超时时间（秒）：</label>
+        <input type="number" id="timeout" value="10" min="1" max="30">
+    </div>
+    
+    <button id="resolve-btn">解析 URL</button>
+    
+    <div id="loading" class="loading" style="display: none;">正在解析 URL，请稍候...</div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <div id="success" class="success" style="display: none;"></div>
+    
+    <div class="result" id="result"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('url-input');
+            const timeoutInput = document.getElementById('timeout');
+            const resolveBtn = document.getElementById('resolve-btn');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            const resultDiv = document.getElementById('result');
+            
+            // 添加一些示例 URL
+            urlInput.value = `https://vertexaisearch.google.com/url/proxy?url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FNanjing_University_of_Aeronautics_and_Astronautics
+https://example.com
+https://www.google.com/url?q=https://www.example.com`;
+            
+            resolveBtn.addEventListener('click', async function() {
+                // 获取输入的 URL 列表
+                const urlsText = urlInput.value.trim();
+                if (!urlsText) {
+                    showError('请输入至少一个 URL');
+                    return;
+                }
+                
+                // 分割成数组并过滤空行
+                const urls = urlsText.split('\n')
+                    .map(url => url.trim())
+                    .filter(url => url);
+                
+                if (urls.length === 0) {
+                    showError('请输入至少一个有效的 URL');
+                    return;
+                }
+                
+                // 获取超时时间
+                const timeout = parseInt(timeoutInput.value);
+                if (isNaN(timeout) || timeout < 1 || timeout > 30) {
+                    showError('超时时间必须是 1-30 之间的数字');
+                    return;
+                }
+                
+                // 显示加载状态
+                showLoading(true);
+                hideError();
+                hideSuccess();
+                resultDiv.textContent = '';
+                
+                try {
+                    // 发送请求
+                    console.log('发送请求：', { urls, timeout });
+                    
+                    const response = await fetch('/api/resolve_urls', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            urls: urls,
+                            timeout: timeout
+                        })
+                    });
+                    
+                    // 检查响应状态
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`服务器返回错误 (${response.status}): ${errorText}`);
+                    }
+                    
+                    // 解析响应
+                    const data = await response.json();
+                    console.log('收到响应：', data);
+                    
+                    // 显示结果
+                    const { results, total_time, success_count, error_count } = data;
+                    
+                    showSuccess(`成功解析 ${results.length} 个 URL，成功 ${success_count} 个，失败 ${error_count} 个，总耗时 ${total_time} 秒`);
+                    
+                    // 格式化结果
+                    let resultText = '';
+                    
+                    results.forEach((item, index) => {
+                        const status = item.status === 'ok' ? '✅' : '❌';
+                        resultText += `${status} URL ${index + 1}:\n`;
+                        resultText += `  原始 URL: ${item.original_url}\n`;
+                        resultText += `  解析后 URL: ${item.url}\n`;
+                        resultText += `  状态: ${item.status}\n`;
+                        resultText += `  耗时: ${item.time_taken} 秒\n`;
+                        
+                        if (item.status !== 'ok' && item.message) {
+                            resultText += `  错误信息: ${item.message}\n`;
+                        }
+                        
+                        resultText += '\n';
+                    });
+                    
+                    resultDiv.textContent = resultText;
+                    
+                } catch (error) {
+                    console.error('解析 URL 出错:', error);
+                    showError(`解析 URL 失败: ${error.message}`);
+                } finally {
+                    showLoading(false);
+                }
+            });
+            
+            function showLoading(show) {
+                loadingDiv.style.display = show ? 'block' : 'none';
+                resolveBtn.disabled = show;
+            }
+            
+            function showError(message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+            }
+            
+            function hideError() {
+                errorDiv.style.display = 'none';
+            }
+            
+            function showSuccess(message) {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+            }
+            
+            function hideSuccess() {
+                successDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
