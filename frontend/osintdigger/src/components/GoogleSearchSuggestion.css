@@ -1,0 +1,153 @@
+/* Google 搜索建议样式 */
+.google-search-suggestion {
+  width: 100%;
+  margin: 16px 0;
+  font-family: 'Arial', sans-serif;
+  overflow: hidden; /* 确保内容不会溢出 */
+}
+
+.search-suggestion-container {
+  border: 1px solid #dfe1e5;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #fff;
+  overflow-x: auto; /* 添加横向滚动 */
+  max-width: 100%;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #dfe1e5 transparent; /* Firefox */
+}
+
+/* 自定义滚动条样式 */
+.custom-search-queries::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+
+.custom-search-queries::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-search-queries::-webkit-scrollbar-thumb {
+  background-color: #dfe1e5;
+  border-radius: 6px;
+  display: block;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .search-suggestion-container {
+    background-color: #202124;
+    border-color: #5f6368;
+  }
+  .search-text {
+    color: #e8eaed;
+  }
+  .search-query-item {
+    color: #8ab4f8;
+  }
+}
+
+.search-suggestion-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.google-logo {
+  margin-right: 8px;
+}
+
+.search-text {
+  color: #5f6368;
+  font-size: 14px;
+}
+
+.custom-search-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border: 1px solid #dfe1e5;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: Arial, sans-serif;
+  margin: 8px auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.custom-search-queries-wrapper {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.custom-search-queries {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  margin-top: 12px;
+  padding-bottom: 8px;
+  /* 添加自定义滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: #dfe1e5 transparent;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.custom-search-query-item {
+  display: inline-block;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #dfe1e5;
+  border-radius: 24px;
+  color: #202124;
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-search-query-item:hover {
+  background-color: #f1f3f4;
+  text-decoration: none;
+}
+
+.search-query-item:hover {
+  text-decoration: underline;
+}
+
+/* 自定义搜索头部样式 */
+.custom-search-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.custom-search-text {
+  color: #5f6368;
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .custom-search-container {
+    background-color: #202124;
+    border-color: #5f6368;
+  }
+  .custom-search-text {
+    color: #e8eaed;
+  }
+  .custom-search-query-item {
+    background-color: #303134;
+    border-color: #5f6368;
+    color: #e8eaed;
+  }
+  .custom-search-query-item:hover {
+    background-color: #3c4043;
+  }
+}
