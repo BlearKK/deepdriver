@@ -39,8 +39,8 @@ Risk List C: {List C} // Expecting a list of strings, e.g., ["Military", "Specif
   "risk_item": "string",          // The exact risk item from List C
   "institution_A": "string",     // The institution name provided in the input
   "relationship_type": "string", // Including "Direct", "Indirect", "Significant Mention", "Unknown", "No Evidence Found"
-  "finding_summary": "string",   // A detailed summary of your findings, describing the nature of the connection, key details (like project names, funding, personnel). **Do not use numbered citations like [1], [2] within this summary.** Mention source types descriptively if helpful (e.g., 'according to their official website', 'as reported by news outlet X').
-  "potential_intermediary_B": "string | null", // Name of intermediary organization if relationship is direct or indirect, otherwise null. 
+  "finding_summary": "string",   // A detailed summary of your findings, describing the nature of the connection, key details (like project names, funding, personnel). 
+  "potential_intermediary_B": "string[] | null", // Name of intermediary organization if relationship is direct or indirect, otherwise null. using [] to wrap the name. 
   "sources": "string[]"          // Array of source URLs that **support the findings described in the finding_summary.**
 }
 ```
@@ -54,7 +54,7 @@ Risk List C: {List C} // Expecting a list of strings, e.g., ["Military", "Specif
     "institution_A": "{Institution A}",
     "finding_summary": "Summary of the connection found between A and Item 1. Describe the nature of the link (e.g., 'Joint research project on topic Z reported by Source X', 'Mentioned together in report Y discussing regional security concerns').",
     "relationship_type": "Direct",
-    "potential_intermediary_B": null,
+    "potential_intermediary_B": ["Joint research project"],
     "sources": [
       "URL 1",
       "URL 2"
@@ -65,7 +65,7 @@ Risk List C: {List C} // Expecting a list of strings, e.g., ["Military", "Specif
     "institution_A": "{Institution A}",
     "finding_summary": "No credible public information found linking {Institution A} with 'Item 2 from List C' based on performed searches.",
     "relationship_type": "No Evidence Found",
-    "potential_intermediary_B": null,
+    "potential_intermediary_B": ["No Evidence Found"],
     "sources": []
   },
   {
@@ -73,7 +73,7 @@ Risk List C: {List C} // Expecting a list of strings, e.g., ["Military", "Specif
     "institution_A": "{Institution A}",
     "finding_summary": "Institution A mentioned as collaborating with 'Org B' on Project Alpha. 'Org B' is also listed as a key partner for 'Item 3 from List C' on website Z.",
     "relationship_type": "Indirect",
-    "potential_intermediary_B": "Org B",
+    "potential_intermediary_B": ["Org B"],
     "sources": [
       "URL for A-B connection",
       "URL for B-C connection"
@@ -84,6 +84,7 @@ Risk List C: {List C} // Expecting a list of strings, e.g., ["Military", "Specif
 
 <Notes>
 **STRICTLY output only the JSON list. Do not include any text before or after the JSON. This is critical for parsing the output.**
+**IMPORTANT: DO NOT USE ANY NUMBERED CITATIONS like [1], [2], [3] within this summary. This is a strict requirement.**
 **All text in the output, including keys and values, MUST be in English.**
 **Do not use markdown code blocks or any other formatting - return only pure JSON.**
 </Notes>

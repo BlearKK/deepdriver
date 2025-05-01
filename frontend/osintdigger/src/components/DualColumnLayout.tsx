@@ -11,8 +11,8 @@ import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import ResultCard from "./ResultCard";
 
-// 导入 Source 类型，确保与 ResultCard 组件使用相同的类型定义
-import { Source } from "./ResultCard";
+// 导入 Source 类型，从集中的类型定义文件导入
+import { Source } from "@/types";
 
 type InvestigationStatus = 'idle' | 'loading' | 'error' | 'success';
 
@@ -67,8 +67,11 @@ const DualColumnLayout = () => {
         risk_list: riskItems
       };
       
+      // 使用环境变量获取API基础URL
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      
       // 发送请求到后端API
-      const response = await fetch('http://localhost:5000/api/check_risks', {
+      const response = await fetch(`${apiBaseUrl}/api/check_risks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

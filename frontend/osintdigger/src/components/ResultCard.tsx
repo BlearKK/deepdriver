@@ -1,32 +1,31 @@
-import { ExternalLink, RefreshCw } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
+import { ExternalLink, RefreshCw, Info, AlertTriangle } from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
   CardTitle,
+  CardDescription,
+  CardFooter
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import GoogleSearchSuggestion from "./GoogleSearchSuggestion";
 import "./GoogleSearchSuggestion.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { Source } from '@/types';
 
-// 后端返回的sources是字符串数组，而不是对象数组
-
-// 定义新的 Source 对象类型
-// 将接口导出，以便其他组件可以引用
-export interface Source {
-  url: string;
-  status: 'ok' | 'error';
-  message?: string; // 错误信息，可选
-  original_url?: string; // 原始 URL，解析后的 URL 会有这个字段
-  time_taken?: number; // 解析耗时，秒
-  isResolving?: boolean; // 是否正在解析中
-  isResolved?: boolean; // 是否已经解析过
-  index?: number; // URL 在数组中的索引
-  title?: string; // 网页标题
-  description?: string; // 网页描述
-}
+// Import the custom hook and types
+import { useSanctions, MatchLevel, MatchResult, SanctionEntity } from '@/hooks/useSanctions';
+import SourceList from './SourceList';
 
 interface ResultCardProps {
   result: {
@@ -34,7 +33,10 @@ interface ResultCardProps {
     relationship_type: string;
     finding_summary: string;
     potential_intermediary_B?: string | null;
-    sources?: Source[]; // <-- 修改类型为 Source 对象数组
+    institution_a?: string; // 添加 Institution A 字段
+    institution_c?: string; // 添加 Institution C 字段
+    target_institution_name?: string; // 添加 Target Institution Name 字段
+    sources?: Source[]; 
     // 添加 Google 搜索建议相关字段 - 新格式
     search_metadata?: {
       rendered_content?: string;
@@ -46,226 +48,299 @@ interface ResultCardProps {
   };
 }
 
+// 安全地处理文本内容，移除可能导致React渲染错误的数字引用
+const sanitizeText = (text: string | null | undefined): string => {
+  if (!text) return "";
+  try {
+    // 将[数字]或[数字1, 数字2, ...]格式替换为安全文本
+    return text.replace(/\[(\d+(?:,\s*\d+)*)\]/g, '(引用$1)');
+  } catch (error) {
+    console.error("Error sanitizing text:", error);
+    return "Error processing text";
+  }
+};
+
 const ResultCard = ({ result: initialResult }: ResultCardProps) => {
-  // 使用内部状态管理 result，以便于更新 UI
-  const [result, setResult] = useState(initialResult);
-  // 状态变量跟踪 URL 解析状态
-  const [resolveError, setResolveError] = useState<string | null>(null);
+  // 添加错误状态
+  const [hasError, setHasError] = useState(false);
   
+  // 错误处理函数
+  useEffect(() => {
+    const handleError = () => {
+      setHasError(true);
+      console.error("Error detected in ResultCard component");
+    };
+    
+    // 尝试捕获任何渲染错误
+    try {
+      if (initialResult && typeof initialResult === 'object') {
+        // 验证关键属性
+        if (initialResult.finding_summary && 
+            typeof initialResult.finding_summary === 'string' && 
+            initialResult.finding_summary.includes('[')) {
+          console.warn("Finding summary contains potentially problematic brackets:", 
+                      initialResult.finding_summary.substring(0, 100));
+        }
+      }
+    } catch (error) {
+      handleError();
+    }
+  }, [initialResult]);
+  
+  // 如果发生错误，显示降级UI
+  if (hasError) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-xl">{initialResult?.risk_item || "Unknown Risk Item"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">An error occurred while displaying this result. The data may contain formatting issues.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => setHasError(false)}
+            className="mt-2"
+          >
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+  // 使用内部状态管理 result，以便于更新 UI
+  const [result, setResult] = useState(() => {
+    try {
+      // 深度复制并清理initialResult对象
+      const cleanedResult = {...initialResult};
+      
+      // 处理finding_summary
+      if (cleanedResult.finding_summary) {
+        cleanedResult.finding_summary = sanitizeText(cleanedResult.finding_summary);
+      }
+      
+      // 处理其他可能包含问题字符的字段
+      if (cleanedResult.risk_item) {
+        cleanedResult.risk_item = sanitizeText(cleanedResult.risk_item);
+      }
+      
+      if (cleanedResult.relationship_type) {
+        cleanedResult.relationship_type = sanitizeText(cleanedResult.relationship_type);
+      }
+      
+      if (cleanedResult.potential_intermediary_B) {
+        cleanedResult.potential_intermediary_B = sanitizeText(cleanedResult.potential_intermediary_B);
+      }
+      
+      return cleanedResult;
+    } catch (error) {
+      console.error("Error initializing result state:", error);
+      // 返回一个安全的默认对象
+      return {
+        risk_item: initialResult?.risk_item || "Unknown Risk Item",
+        relationship_type: "Unknown",
+        finding_summary: "Error processing data",
+        sources: []
+      };
+    }
+  });
+
+  // Use the custom hook to get sanctions data
+  const { sanctionsSet, checkEntitySanctioned, checkMultipleEntities, isDefiniteMatch, isLoading: sanctionsLoading, error: sanctionsError } = useSanctions();
+
+  // Log loading/error status for sanctions (optional)
+  useEffect(() => {
+    if (sanctionsLoading) {
+      console.log('Loading sanctions list...');
+    } else if (sanctionsError) {
+      console.error('Error loading sanctions list:', sanctionsError);
+    } else {
+      console.log('Sanctions list loaded successfully.');
+    }
+  }, [sanctionsLoading, sanctionsError]);
+
+  // 检查所有相关实体是否被制裁（使用多实体检查）
+  const riskItemSanctionResults = useMemo(() => {
+    return checkMultipleEntities(result.risk_item);
+  }, [checkMultipleEntities, result.risk_item]);
+
+  const intermediarySanctionResults = useMemo(() => {
+    return checkMultipleEntities(result.potential_intermediary_B);
+  }, [checkMultipleEntities, result.potential_intermediary_B]);
+
+  const institutionASanctionResults = useMemo(() => {
+    return checkMultipleEntities(result.institution_a);
+  }, [checkMultipleEntities, result.institution_a]);
+
+  const institutionCSanctionResults = useMemo(() => {
+    return checkMultipleEntities(result.institution_c);
+  }, [checkMultipleEntities, result.institution_c]);
+  
+  // 检查 Target Institution Name
+  const targetInstitutionSanctionResults = useMemo(() => {
+    return checkMultipleEntities(result.target_institution_name);
+  }, [checkMultipleEntities, result.target_institution_name]);
+
+  // 整合所有检查结果
+  const allSanctionResults = useMemo(() => {
+    return [
+      ...riskItemSanctionResults.map(check => ({ entity: 'Risk Item', check })),
+      ...intermediarySanctionResults.map(check => ({ entity: 'Intermediary', check })),
+      ...institutionASanctionResults.map(check => ({ entity: 'Institution A', check })),
+      ...institutionCSanctionResults.map(check => ({ entity: 'Institution C', check })),
+      ...targetInstitutionSanctionResults.map(check => ({ entity: 'Target Institution', check }))
+    ];
+  }, [riskItemSanctionResults, intermediarySanctionResults, institutionASanctionResults, institutionCSanctionResults, targetInstitutionSanctionResults]);
+
+  // 分类匹配结果：确定匹配和可能匹配
+  const definiteMatches = useMemo(() => {
+    return allSanctionResults.filter(item => 
+      isDefiniteMatch(item.check.matchLevel) && item.check.isSanctioned
+    );
+  }, [allSanctionResults, isDefiniteMatch]);
+
+  const possibleMatches = useMemo(() => {
+    return allSanctionResults.filter(item => 
+      item.check.matchLevel === MatchLevel.PARTIAL && item.check.isSanctioned
+    );
+  }, [allSanctionResults]);
+
+  // 判断是否有制裁实体（确定或可能匹配）
+  const hasDefiniteMatches = definiteMatches.length > 0;
+  const hasPossibleMatches = possibleMatches.length > 0;
+  const isSanctioned = hasDefiniteMatches || hasPossibleMatches;
+  
+  // 获取匹配的制裁实体信息（用于兼容旧代码）
+  const matchedSanctionEntity = hasDefiniteMatches 
+    ? definiteMatches[0].check.matchedEntity 
+    : (hasPossibleMatches ? possibleMatches[0].check.matchedEntity : undefined);
+
   // 调试日志：打印sources数量和内容
   console.log(
-    `【调试】risk_item: ${result.risk_item}, sources数量:`, 
-    result.sources?.length,
-    "sources内容:",
-    result.sources 
+    `【调试 ResultCard】risk_item: ${result.risk_item}`
+    // Optionally log other props/state here
   );
-  
-  // 处理 sources 数组，确保每个元素都是对象并添加索引
-  try {
-    if (result.sources && Array.isArray(result.sources) && result.sources.length > 0) {
-      result.sources = result.sources.map((source, index) => {
-        // 如果source是null或undefined，创建一个默认对象
-        if (source === null || source === undefined) {
-          console.error(`【数据错误】sources[${index}]是null或undefined`);
-          return {
-            url: '无效URL',
-            status: 'error',
-            message: '无效的源数据',
-            isResolving: false,
-            isResolved: true,
-            index: index
-          };
-        }
-        
-        if (typeof source === 'string') {
-          return { 
-            url: source || '无效URL', 
-            status: 'ok', 
-            isResolving: false,
-            isResolved: false,
-            index: index
-          };
-        }
-        
-        // 确保source是一个对象
-        if (typeof source !== 'object') {
-          console.error(`【数据错误】sources[${index}]不是字符串也不是对象:`, source);
-          return {
-            url: '无效URL',
-            status: 'error',
-            message: `无效的源数据类型: ${typeof source}`,
-            isResolving: false,
-            isResolved: true,
-            index: index
-          };
-        }
-        
-        // 确保url字段存在
-        if (!source.url) {
-          console.error(`【数据错误】sources[${index}]缺少url字段:`, source);
-          return {
-            ...source,
-            url: '无效URL',
-            status: 'error',
-            message: '缺少URL',
-            isResolving: false,
-            isResolved: true,
-            index: index
-          };
-        }
-        
-        return { 
-          ...source, 
-          isResolving: source.isResolving || false,
-          isResolved: source.isResolved || false,
-          index: index
-        };
-      });
-    } else if (result.sources && !Array.isArray(result.sources)) {
-      console.error('【数据错误】sources不是数组:', result.sources);
-      result.sources = [];
-    }
-  } catch (error) {
-    console.error('【严重错误】处理sources数组时出错:', error);
-    result.sources = [];
-  }
-  
-  // 解析全部 URL 的函数
-  const resolveAllUrls = async () => {
-    if (!result || !result.sources || !Array.isArray(result.sources) || result.sources.length === 0) {
-      console.error('【URL解析】没有可解析的 URL');
-      setResolveError('没有可解析的 URL');
-      return;
-    }
 
-    // 清除之前的错误信息
-    setResolveError(null);
-
-    // 按顺序解析每个 URL
-    for (let i = 0; i < result.sources.length; i++) {
-      const source = result.sources[i];
-      if (source && source.url && !source.isResolved && !source.isResolving) {
-        await resolveSingleUrl(i);
-        // 添加小延迟，避免请求过快
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    }
-  };
-
-  // 解析单个 URL 的函数
-  const resolveSingleUrl = async (sourceIndex: number) => {
-    // 检查数据有效性
-    if (!result || !result.sources || !Array.isArray(result.sources) || sourceIndex >= result.sources.length) {
-      console.error(`【URL解析】无效的数据或索引: ${sourceIndex}`);
-      return;
-    }
-
-    // 获取要解析的源
-    const sourceToResolve = result.sources[sourceIndex];
-    if (!sourceToResolve || !sourceToResolve.url) {
-      console.error(`【URL解析】源 ${sourceIndex} 没有有效的 URL`);
-      return;
-    }
-
-    // 如果已经解析过或正在解析，则跳过
-    if (sourceToResolve.isResolved || sourceToResolve.isResolving) {
-      console.log(`【URL解析】跳过已解析或正在解析的 URL: ${sourceToResolve.url}`);
-      return;
-    }
-
-    // 更新状态，标记为正在解析中
-    setResult(prevResult => {
-      const newSources = [...prevResult.sources];
-      newSources[sourceIndex] = { ...sourceToResolve, isResolving: true };
-      return { ...prevResult, sources: newSources };
-    });
-
-    try {
-      // 使用绝对路径调用后端 API
-      const apiUrl = 'http://localhost:5000/api/resolve_urls';
-      console.log(`【URL解析】发送请求到 ${apiUrl}，解析单个 URL: ${sourceToResolve.url}`);
-      
-      // 准备请求数据
-      const requestData = { urls: [sourceToResolve.url] };
-      
-      // 发送请求
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
-        mode: 'cors' // 启用跨域请求
-      });
-      
-      // 如果请求失败，抛出错误
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`请求失败 (${response.status}): ${errorText || response.statusText}`);
-      }
-      
-      // 解析响应数据
-      const data = await response.json();
-      console.log(`【URL解析】响应数据:`, data);
-      
-      // 检查响应数据格式
-      if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
-        throw new Error('服务器返回的数据格式不正确');
-      }
-      
-      // 获取解析结果
-      const resolvedData = data.results[0];
-      
-      // 更新状态，标记为已解析
-      setResult(prevResult => {
-        const newSources = [...prevResult.sources];
-        newSources[sourceIndex] = { 
-          ...sourceToResolve, 
-          url: resolvedData.url,
-          original_url: resolvedData.original_url,
-          status: resolvedData.status,
-          time_taken: resolvedData.time_taken,
-          message: resolvedData.message,
-          // 添加标题和描述字段
-          title: resolvedData.title || null,
-          description: resolvedData.description || null,
-          isResolving: false,
-          isResolved: true,
-          index: sourceIndex
-        };
-        return { ...prevResult, sources: newSources };
-      });
-      
-      // 调试日志，显示提取的标题和描述
-      console.log(`【URL解析】提取的标题: ${resolvedData.title || '无'}`);
-      
-      console.log(`【URL解析】成功解析 URL: ${sourceToResolve.url} -> ${resolvedData.url}`);
-      return true; // 返回成功状态
-    } catch (error) {
-      // 安全地处理错误对象
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-      console.error(`【URL解析】解析 URL 出错:`, errorMessage);
-      
-      // 更新状态，标记为解析失败
-      setResult(prevResult => {
-        const newSources = [...prevResult.sources];
-        newSources[sourceIndex] = { 
-          ...sourceToResolve, 
-          status: 'error',
-          message: errorMessage,
-          isResolving: false,
-          isResolved: true,
-          index: sourceIndex
-        };
-        return { ...prevResult, sources: newSources };
-      });
-      
-      // 设置错误信息，但不影响批量解析的继续
-      return false; // 返回失败状态
-    }
-  };
+  // Render the card UI
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-xl">{result.risk_item}</CardTitle>
+        {/* Conditionally render the sanctioned entity tag */}
+        {isSanctioned && (
+          <div className="mt-1">
+            <Dialog>
+              <DialogTrigger asChild>
+                <span className="inline-block bg-yellow-200 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300 cursor-pointer hover:bg-yellow-300 transition-colors">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    {hasDefiniteMatches ? "Sanctioned Entity" : "Possible Sanction Match"}
+                  </div>
+                </span>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-yellow-800 flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
+                    Sanctioned Entities Found
+                  </DialogTitle>
+                  <DialogDescription>
+                    {hasDefiniteMatches && hasPossibleMatches
+                      ? `Found ${definiteMatches.length} confirmed ${definiteMatches.length === 1 ? 'match' : 'matches'} and ${possibleMatches.length} possible ${possibleMatches.length === 1 ? 'match' : 'matches'}.`
+                      : hasDefiniteMatches
+                        ? `Found ${definiteMatches.length} confirmed ${definiteMatches.length === 1 ? 'match' : 'matches'} with sanctioned organizations.`
+                        : `Found ${possibleMatches.length} possible ${possibleMatches.length === 1 ? 'match' : 'matches'} with sanctioned organizations.`
+                    }
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="mt-4 space-y-6">
+                  {/* 确定匹配部分 */}
+                  {definiteMatches.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                        Confirmed Matches
+                      </h3>
+                      <div className="space-y-3">
+                        {definiteMatches.map((item, index) => (
+                          <Card key={`definite-${index}`} className="border-yellow-300">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base flex items-center">
+                                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2 py-0.5 rounded">
+                                  {item.entity}
+                                </span>
+                                <span className="text-sm">{item.check.entityName}</span>
+                                <span className="ml-auto text-xs bg-yellow-50 text-yellow-600 px-1 py-0.5 rounded">
+                                  {item.check.matchLevel === MatchLevel.EXACT ? 'Exact' : 
+                                   item.check.matchLevel === MatchLevel.ALIAS ? 'Alias' : 
+                                   item.check.matchLevel === MatchLevel.ACRONYM ? 'Acronym' : ''}
+                                </span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="border-t border-yellow-100 pt-2 mt-1">
+                                <p className="text-sm font-medium mb-1">Matched with: {item.check.matchedEntity?.name}</p>
+                                
+                                {item.check.matchedEntity?.aliases && item.check.matchedEntity.aliases.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-500 mb-1">Known Aliases:</p>
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                      {item.check.matchedEntity.aliases.map((alias, aliasIndex) => (
+                                        <li key={aliasIndex} className="text-xs text-gray-700">{alias}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 可能匹配部分 */}
+                  {possibleMatches.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold mb-2 bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                        Possible Matches
+                      </h3>
+                      <div className="space-y-3">
+                        {possibleMatches.map((item, index) => (
+                          <Card key={`possible-${index}`} className="border-gray-200">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-base flex items-center">
+                                <span className="bg-gray-100 text-gray-800 text-xs font-medium mr-2 px-2 py-0.5 rounded">
+                                  {item.entity}
+                                </span>
+                                <span className="text-sm">{item.check.entityName}</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="border-t border-gray-100 pt-2 mt-1">
+                                <p className="text-sm font-medium mb-1">Possibly related to: {item.check.matchedEntity?.name}</p>
+                                
+                                {item.check.matchedEntity?.aliases && item.check.matchedEntity.aliases.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-500 mb-1">Known Aliases:</p>
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                      {item.check.matchedEntity.aliases.map((alias, aliasIndex) => (
+                                        <li key={aliasIndex} className="text-xs text-gray-700">{alias}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm font-medium">
@@ -279,7 +354,10 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
         )}
 
         <p className="text-sm text-muted-foreground mt-4">
-          {result.finding_summary}
+          {result.finding_summary ? 
+            sanitizeText(result.finding_summary) : 
+            "No finding summary available"
+          }
         </p>
         
         {/* 根据 Google 官方文档要求，添加 Google 搜索建议组件 */}
@@ -299,207 +377,8 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
           </div>
         </div>
 
-        {result.sources && result.sources.length > 0 && (
-          <>
-            <div className="flex justify-between items-center mt-4 mb-2">
-              <h4 className="text-sm font-semibold">Sources ({result.sources.length})</h4>
-              
-              {/* 添加一键解析所有 URL 的按钮 */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={resolveAllUrls}
-                disabled={result.sources.every(s => s.isResolved || s.isResolving)}
-                className="text-xs"
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                解析所有 URL
-              </Button>
-            </div>
-            
-            {resolveError && (
-              <div className="p-2 mb-2 text-sm bg-red-50 text-red-700 rounded border border-red-200">
-                解析错误: {resolveError}
-              </div>
-            )}
-            
-            {/* 修改：使用 div 替代 ul，并移除内边距 */} 
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {/* 修改：迭代 source 对象 */} 
-              {result.sources.map((sourceItem, index) => {
-                // <-- 新增：兼容处理，如果 source 是字符串，转换为对象 -->
-                let source = sourceItem;
-                if (typeof sourceItem === 'string') {
-                  // 如果 source 是字符串，转换为对象
-                  source = { url: sourceItem, status: 'ok' };
-                  console.log(`【前端兼容】将字符串 source 转换为对象:`, sourceItem);
-                }
-                
-                // 使用try-catch包裹整个URL处理逻辑
-                let hostname = '';
-                let displayUrl = '#'; // 默认为无效链接
-                let isError = false;
-                let errorMessage = ''; 
-                
-                try {
-                  // 安全地获取URL
-                  if (source && typeof source === 'object') {
-                    // 检查URL是否有效
-                    if (typeof source.url === 'string' && source.url) {
-                      displayUrl = source.url;
-                      isError = source.status === 'error';
-                      errorMessage = source.message || 'Resolution failed';
-                      
-                      // 尝试解析URL
-                      try {
-                        const parsedUrl = new URL(source.url);
-                        hostname = parsedUrl.hostname.replace(/^www\./, '');
-                      } catch (e) {
-                        console.error(`【前端解析】URL解析失败: ${source.url}`, e);
-                        hostname = "Parsing Error";
-                        isError = true;
-                        errorMessage = `URL格式无效: ${e.message}`;
-                        displayUrl = '#';
-                      }
-                    } else {
-                      console.error(`【前端校验】无效的URL:`, source.url);
-                      hostname = "Invalid URL";
-                      isError = true;
-                      errorMessage = "无效的URL格式";
-                    }
-                  } else {
-                    console.error(`【前端校验】无效的source对象:`, source);
-                    hostname = "Invalid Data";
-                    isError = true;
-                    errorMessage = "无效的数据格式";
-                  }
-
-                } catch (error) {
-                  console.error('【严重错误】处理URL时发生异常:', error);
-                  // 出现异常时返回错误卡片
-                  return (
-                    <div key={index} className="p-3 border rounded-lg shadow-sm bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700">
-                      <p className="text-sm font-medium truncate text-red-700 dark:text-red-300">
-                        {index + 1}. 数据处理错误
-                      </p>
-                      <p className="text-xs text-red-600 dark:text-red-400 break-all">
-                        Error: 渲染此项时发生错误，请刷新页面重试
-                      </p>
-                    </div>
-                  );
-                }
-                
-                // 修改：替换 li 为 div 卡片结构
-                return (
-                  // 修改：根据错误状态添加不同样式
-                  <div 
-                    key={index} 
-                    className={`p-3 border rounded-lg shadow-sm ${isError ? 
-                      // 检查是否是 403 Forbidden 错误
-                      (errorMessage && (errorMessage.includes('403') || errorMessage.includes('Forbidden'))) ? 
-                        // 403 错误显示为黄色警告
-                        'bg-yellow-50 dark:bg-yellow-900 border-yellow-200 dark:border-yellow-700' : 
-                        // 其他错误显示为红色
-                        'bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700' 
-                      : 'bg-gray-50 dark:bg-gray-800'}`}
-                  >
-                    {/* 显示网页标题和解析状态 */} 
-                    <div className="flex items-center justify-between mb-1">
-                      <p 
-                        className={`text-sm font-medium truncate ${isError ? 
-                          // 检查是否是 403 Forbidden 错误
-                          (errorMessage && (errorMessage.includes('403') || errorMessage.includes('Forbidden'))) ? 
-                            // 403 错误显示为黄色警告
-                            'text-yellow-700 dark:text-yellow-300' : 
-                            // 其他错误显示为红色
-                            'text-red-700 dark:text-red-300' 
-                          : 'text-gray-800 dark:text-gray-200'}`}
-                        title={source && source.title ? source.title : hostname}
-                      >
-                        {index + 1}. {source && source.title ? source.title : hostname} 
-                      </p>
-                      
-                      {/* 显示解析状态或解析按钮 */}
-                      <div className="flex items-center gap-2">
-                        {/* 显示解析耗时 */}
-                        {source && source.time_taken !== undefined && !source.isResolving && (
-                          <span className="text-xs text-gray-500">
-                            {typeof source.time_taken === 'number' ? source.time_taken.toFixed(2) : '0.00'}s
-                          </span>
-                        )}
-                        
-                        {source && source.isResolving ? (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center">
-                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                            正在解析
-                          </span>
-                        ) : source && source.isResolved ? (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                            已解析
-                          </span>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-xs h-6 px-2 py-0"
-                            onClick={() => resolveSingleUrl(source && source.index !== undefined ? source.index : index)}
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            解析
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* 根据错误状态显示链接或错误信息 */}
-                    {isError ? (
-                      // 检查是否是 403 Forbidden 错误
-                      errorMessage && (errorMessage.includes('403') || errorMessage.includes('Forbidden')) ? (
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400 break-all">
-                          提示: 该网页可能需要手动访问。请点击下方链接直接在浏览器中打开: <a href={displayUrl !== '#' ? displayUrl : undefined} target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-800">{displayUrl !== '#' ? displayUrl : '无效URL'}</a>
-                        </p>
-                      ) : (
-                        <p className="text-xs text-red-600 dark:text-red-400 break-all">
-                          Error: {errorMessage} {displayUrl !== '#' ? `(URL: ${displayUrl})` : ''}
-                        </p>
-                      )
-                    
-                    ) : (
-                      <div className="space-y-2">
-                        {/* 显示网页描述 */}
-                        {source && source.description && (
-                          <div className="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">
-                            {typeof source.description === 'string' ? source.description : '无描述'}
-                          </div>
-                        )}
-                        
-                        <div className="space-y-1">
-                          {/* 显示原始 URL，如果存在 */}
-                          {source && source.original_url && source.original_url !== source.url && (
-                            <div className="text-xs text-gray-500 break-all">
-                              原始 URL: {typeof source.original_url === 'string' ? source.original_url : '无效URL'}
-                            </div>
-                          )}
-                          
-                          {/* 显示解析后的 URL */}
-                          <a
-                            href={displayUrl !== '#' ? displayUrl : undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1 break-all"
-                          >
-                            {displayUrl !== '#' ? displayUrl : '无效URL'} {/* 显示最终解析的 URL 文本 */}
-                            <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+        {/* Render the SourceList component */}
+        <SourceList sources={result.sources} riskItem={result.risk_item} />
       </CardContent>
     </Card>
   );
