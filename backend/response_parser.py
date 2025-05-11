@@ -338,12 +338,14 @@ def resolve_redirect_url(url, timeout=5):
 def extract_urls_from_response(response, results):
     """
     从 Gemini API 响应的 grounding metadata 和文本内容中提取、解析并返回来源 URL 列表。
+    支持多种接地搜索URL格式，包括新版和旧版API结构。
+    
     Args:
         response: 原始 Gemini API 响应对象。
         results (list): (此参数在此修改后不再用于修改，仅用于兼容旧调用签名，实际未使用)
 
     Returns:
-        list[dict]: 解析后的来源对象列表，例如 [{'url': '...', 'status': 'ok'}, ...]
+        list[dict]: 解析后的来源对象列表，例如 [{'url': '...', 'status': 'ok', 'is_grounding': True}, ...]
     """
     extracted_urls = []
 
@@ -351,15 +353,94 @@ def extract_urls_from_response(response, results):
     try:
         if hasattr(response, 'candidates') and response.candidates:
             candidate = response.candidates[0]
+            
+            # 检查新版API的 grounding_metadata
             if hasattr(candidate, 'grounding_metadata') and candidate.grounding_metadata:
                 metadata = candidate.grounding_metadata
-                if hasattr(metadata, 'grounding_attributions') and metadata.grounding_attributions:
-                    for attribution in metadata.grounding_attributions:
-                        if hasattr(attribution, 'web') and hasattr(attribution.web, 'uri'):
-                            uri = attribution.web.uri
-                            if uri and isinstance(uri, str):
+                
+                # 方法1: 从 grounding_chunks 中提取 URL
+                if hasattr(metadata, 'grounding_chunks') and metadata.grounding_chunks:
+                    for chunk in metadata.grounding_chunks:
+                        # 检查 web 字段
+                        if hasattr(chunk, 'web'):
+                            if hasattr(chunk.web, 'uri') and chunk.web.uri:
+                                uri = chunk.web.uri
+                                if isinstance(uri, str):
+                                    # 确保URL是接地搜索URL格式
+                                    if 'vertexaisearch.cloud.google.com/grounding-api-redirect' in uri:
+                                        extracted_urls.append(uri.strip())
+                                        logger.info(f"从 grounding_chunks.web.uri 提取到接地搜索 URL: {uri.strip()}")
+                        
+                        # 检查 source 字段
+                        if hasattr(chunk, 'source'):
+                            if hasattr(chunk.source, 'uri') and chunk.source.uri:
+                                uri = chunk.source.uri
+                                if isinstance(uri, str):
+                                    extracted_urls.append(uri.strip())
+                                    logger.info(f"从 grounding_chunks.source.uri 提取到 URL: {uri.strip()}")
+                
+                # 方法2: 从 grounding_supports 中提取 URL
+                if hasattr(metadata, 'grounding_supports') and metadata.grounding_supports:
+                    for support in metadata.grounding_supports:
+                        if hasattr(support, 'uri') and support.uri:
+                            uri = support.uri
+                            if isinstance(uri, str):
                                 extracted_urls.append(uri.strip())
-                                logger.info(f"从 grounding metadata 提取到 URL: {uri.strip()}")
+                                logger.info(f"从 grounding_supports 提取到 URL: {uri.strip()}")
+                
+                # 方法3: 从 search_entry_point 中提取 URL
+                if hasattr(metadata, 'search_entry_point'):
+                    # 检查 chips
+                    if hasattr(metadata.search_entry_point, 'chips') and metadata.search_entry_point.chips:
+                        for chip in metadata.search_entry_point.chips:
+                            if hasattr(chip, 'href') and chip.href:
+                                uri = chip.href
+                                if isinstance(uri, str):
+                                    extracted_urls.append(uri.strip())
+                                    logger.info(f"从 search_entry_point.chips 提取到 URL: {uri.strip()}")
+                    
+                    # 检柨 sdk_blob
+                    if hasattr(metadata.search_entry_point, 'sdk_blob') and metadata.search_entry_point.sdk_blob:
+                        try:
+                            import base64
+                            import json
+                            blob = metadata.search_entry_point.sdk_blob
+                            if isinstance(blob, str):
+                                decoded = base64.b64decode(blob)
+                                blob_data = json.loads(decoded)
+                                if isinstance(blob_data, dict) and 'url' in blob_data:
+                                    uri = blob_data['url']
+                                    if isinstance(uri, str):
+                                        extracted_urls.append(uri.strip())
+                                        logger.info(f"从 sdk_blob 提取到 URL: {uri.strip()}")
+                        except Exception as e:
+                            logger.warning(f"从 sdk_blob 提取 URL 失败: {e}")
+                
+                # 方法4: 从 web_search_queries 中提取查询内容
+                if hasattr(metadata, 'web_search_queries') and metadata.web_search_queries:
+                    logger.info(f"检测到 web_search_queries: {metadata.web_search_queries}")
+            
+            # 检查旧版API的 grounding 字段
+            if hasattr(candidate, 'grounding') and candidate.grounding:
+                logger.info("检测到旧版 grounding 字段")
+                
+                # 检查 search_suggestions
+                if hasattr(candidate.grounding, 'search_suggestions') and candidate.grounding.search_suggestions:
+                    for suggestion in candidate.grounding.search_suggestions:
+                        if hasattr(suggestion, 'url') and suggestion.url:
+                            uri = suggestion.url
+                            if isinstance(uri, str):
+                                extracted_urls.append(uri.strip())
+                                logger.info(f"从 grounding.search_suggestions 提取到 URL: {uri.strip()}")
+            
+            # 检查旧版API的 grounding_attributions
+            if hasattr(candidate, 'grounding_attributions') and candidate.grounding_attributions:
+                for attribution in candidate.grounding_attributions:
+                    if hasattr(attribution, 'web') and hasattr(attribution.web, 'uri'):
+                        uri = attribution.web.uri
+                        if uri and isinstance(uri, str):
+                            extracted_urls.append(uri.strip())
+                            logger.info(f"从 grounding_attributions 提取到 URL: {uri.strip()}")
     except Exception as e:
         logger.error(f"从 grounding metadata 提取 URL 时出错: {e}", exc_info=True)
 
@@ -381,12 +462,27 @@ def extract_urls_from_response(response, results):
                         logger.info(f"从文本内容提取到 {len(search_urls)} 个搜索 URL")
             else:
                 logger.warning("无法访问 response.candidates[0].content.parts[0].text")
+                
+            # 检查是否有URL，如果没有，记录详细的响应结构以便调试
+            if not extracted_urls:
+                logger.warning("未能从响应中提取到任何URL，记录响应结构以便调试")
+                if hasattr(response.candidates[0], 'grounding_metadata'):
+                    logger.info(f"grounding_metadata 属性: {dir(response.candidates[0].grounding_metadata)}")
+                    if hasattr(response.candidates[0].grounding_metadata, 'grounding_chunks'):
+                        logger.info(f"grounding_chunks 数量: {len(response.candidates[0].grounding_metadata.grounding_chunks)}")
+                    if hasattr(response.candidates[0].grounding_metadata, 'search_entry_point'):
+                        logger.info(f"search_entry_point 属性: {dir(response.candidates[0].grounding_metadata.search_entry_point)}")
     except Exception as e:
         logger.error(f"从文本内容提取 URL 时出错: {e}", exc_info=True)
     
     # 去重 (再次确保，因为可能从不同来源添加)
     unique_urls = list(dict.fromkeys(extracted_urls))
     logger.info(f"去重后共有 {len(unique_urls)} 个唯一的 URL 待解析")
+    
+    # 记录所有提取到的URL，方便调试
+    if unique_urls:
+        for i, url in enumerate(unique_urls):
+            logger.info(f"提取到的URL {i+1}: {url}")
 
     # 3. 解析提取到的 URL
     resolved_sources = [] 
@@ -400,7 +496,33 @@ def extract_urls_from_response(response, results):
         else:
             for url in valid_urls:
                 logger.info(f"【调试】准备调用 resolve_redirect_url 处理 URL: '{url}' (类型: {type(url)})")
+                # 检查URL是否是接地搜索URL格式
+                is_vertex_url = False
+                
+                # 检查多种接地搜索URL格式
+                vertex_patterns = [
+                    'vertexaisearch.cloud.google.com/grounding-api-redirect',
+                    'gemini-api-redirect',
+                    'google.com/search',
+                    'googleapis.com/search'
+                ]
+                
+                matched_pattern = None
+                for pattern in vertex_patterns:
+                    if pattern in url:
+                        is_vertex_url = True
+                        matched_pattern = pattern
+                        logger.info(f"【调试】检测到接地搜索URL ({pattern}): {url}")
+                        break
+                
                 resolved_data = resolve_redirect_url(url)
+                
+                # 如果是接地搜索URL，添加标记
+                if is_vertex_url and isinstance(resolved_data, dict):
+                    resolved_data['is_grounding'] = True
+                    if matched_pattern:
+                        resolved_data['grounding_pattern'] = matched_pattern  # 记录匹配的模式
+                    
                 logger.info(f"【调试】resolve_redirect_url 返回的数据: {resolved_data}") 
                 # 确保返回的是字典且包含必要字段
                 if isinstance(resolved_data, dict) and 'url' in resolved_data and 'status' in resolved_data:
@@ -410,7 +532,11 @@ def extract_urls_from_response(response, results):
                     # 添加一个错误源占位符
                     resolved_sources.append({'url': url, 'status': 'error', 'message': 'Internal error: Invalid data from URL resolver'})
                     
-            logger.info(f"完成 URL 解析，得到 {len(resolved_sources)} 条来源数据")
+            # 安全地记录解析后的来源数量
+            if resolved_sources is not None:
+                logger.info(f"完成 URL 解析，得到 {len(resolved_sources)} 条来源数据")
+            else:
+                logger.warning("resolved_sources 为 None，无法记录来源数量")
     else:
         logger.warning("没有提取到任何 URL 进行解析")
 

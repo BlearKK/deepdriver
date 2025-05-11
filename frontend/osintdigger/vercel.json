@@ -2,15 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "functions": {
-    "api/**/*.py": {
-      "runtime": "python3.9"
-    }
-  },
-  "routes": [
-    { "src": "/api/check_risks", "dest": "/api/check_risks.py" },
-    { "src": "/api/resolve_urls", "dest": "/api/resolve_urls.py" },
-    { "src": "/(.*)", "dest": "/dist/$1" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "github": {
     "silent": true

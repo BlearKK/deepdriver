@@ -1,10 +1,14 @@
 # OSINT 安全风险调查工具后端
 
-这是一个基于 Flask 的后端 API 服务，用于接收前端请求，调用 Google Gemini API 进行安全风险调查，并返回结构化的调查结果。
+这是一个基于 Flask 的后端 API 服务，用于接收前端请求，调用 Google Gemini API 进行安全风险调查和机构关系分析，并返回结构化的调查结果。
 
 ## 功能介绍
 
-本后端服务提供了一个 HTTP POST 接口 `/api/check_risks`，接收机构名称、国家和风险列表，然后使用 Google Gemini API 进行调查，返回结构化的调查结果。
+本后端服务提供以下主要功能：
+
+1. **风险调查接口** - HTTP POST 接口 `/api/check_risks`，接收机构名称、国家和风险列表，然后使用 Google Gemini API 进行调查，返回结构化的调查结果。
+
+2. **机构关系分析** - 提供批量分析目标机构与研究组织关系的功能，支持识别直接关联、间接关联和重要提及等关系类型。
 
 ### 工作流程
 
@@ -123,3 +127,30 @@ fetch('http://localhost:5000/api/check_risks', {
 - 如果遇到 "未找到GOOGLE_API_KEY环境变量" 错误，请检查 `.env` 文件是否正确配置
 - 如果遇到 API 调用失败，请检查 API 密钥是否有效，以及是否有足够的配额
 - 如果解析响应出错，可能是 Gemini API 的响应格式发生变化，请检查日志并更新解析逻辑
+
+## 批量机构关系分析功能
+
+### NRO搜索脚本
+
+本项目包含一个用于批量分析目标机构与研究组织关系的脚本 `nro_search_script.py`。该脚本具有以下特点：
+
+1. 批量调用 OpenRouter 的 perplexity/sonar-reasoning-pro 模型
+2. 使用 NRO_search.md 作为系统提示词，为每个研究机构生成关系分析
+3. 支持三种关系类型的识别：
+   - Direct（直接关联）
+   - Indirect（间接关联）
+   - Significant Mention（重要提及）
+4. 实现了进度条显示和实时结果输出
+5. 结果以JSON格式保存，包含关系类型和详细发现摘要
+
+### 使用方法
+
+```bash
+python nro_search_script.py --target "目标机构名称" --output "输出文件路径.json"
+```
+
+### 参数说明
+
+- `--target`: 指定要分析的目标机构名称
+- `--output`: 指定结果输出的JSON文件路径
+- `--mock`: 启用模拟模式，不调用真实API（可选）

@@ -12,14 +12,28 @@ OSINT 安全风险调查工具后端 API
 - routes.py: API路由定义
 """
 
-from flask import Flask
+import os
+from flask import Flask, request
 from flask_cors import CORS
 from config import logger
 from routes import register_routes
 
 # 创建Flask应用
 app = Flask(__name__, static_url_path='', static_folder='static')
-CORS(app)  # 启用CORS，允许前端跨域请求
+
+# 配置CORS
+cors = CORS(app, resources={r"/api/*": {
+    "origins": "*",
+    "methods": ["GET", "POST", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+}})
+
+# 添加CORS预检请求处理
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        return response
 
 # 添加静态文件路由
 @app.route('/test')
@@ -32,4 +46,5 @@ register_routes(app)
 if __name__ == "__main__":
     # 在开发环境中运行
     logger.info("启动OSINT安全风险调查工具后端服务...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

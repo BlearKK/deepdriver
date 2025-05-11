@@ -24,7 +24,7 @@ import axios from "axios";
 import { Source } from '@/types';
 
 // Import the custom hook and types
-import { useSanctions, MatchLevel, MatchResult, SanctionEntity } from '@/hooks/useSanctions';
+import { useNROListed, MatchLevel, MatchResult, NROListedEntity } from '@/hooks/useNROListed';
 import SourceList from './SourceList';
 
 interface ResultCardProps {
@@ -32,7 +32,7 @@ interface ResultCardProps {
     risk_item: string;
     relationship_type: string;
     finding_summary: string;
-    potential_intermediary_B?: string | null;
+    potential_intermediary_B?: string | string[] | null;
     institution_a?: string; // 添加 Institution A 字段
     institution_c?: string; // 添加 Institution C 字段
     target_institution_name?: string; // 添加 Target Institution Name 字段
@@ -49,11 +49,18 @@ interface ResultCardProps {
 }
 
 // 安全地处理文本内容，移除可能导致React渲染错误的数字引用
-const sanitizeText = (text: string | null | undefined): string => {
+const sanitizeText = (text: string | string[] | null | undefined): string | string[] => {
   if (!text) return "";
+  
+  // 如果是数组，对每个元素进行处理
+  if (Array.isArray(text)) {
+    return text.map(item => sanitizeText(item) as string);
+  }
+  
   try {
-    // 将[数字]或[数字1, 数字2, ...]格式替换为安全文本
-    return text.replace(/\[(\d+(?:,\s*\d+)*)\]/g, '(引用$1)');
+    // 保留原始的【数字】格式，不再替换为"引用数字"
+    // 如果需要，可以在这里添加其他文本清理逻辑
+    return text;
   } catch (error) {
     console.error("Error sanitizing text:", error);
     return "Error processing text";
@@ -115,19 +122,21 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
       
       // 处理finding_summary
       if (cleanedResult.finding_summary) {
-        cleanedResult.finding_summary = sanitizeText(cleanedResult.finding_summary);
+        cleanedResult.finding_summary = sanitizeText(cleanedResult.finding_summary) as string;
       }
       
       // 处理其他可能包含问题字符的字段
       if (cleanedResult.risk_item) {
-        cleanedResult.risk_item = sanitizeText(cleanedResult.risk_item);
+        cleanedResult.risk_item = sanitizeText(cleanedResult.risk_item) as string;
       }
       
       if (cleanedResult.relationship_type) {
-        cleanedResult.relationship_type = sanitizeText(cleanedResult.relationship_type);
+        cleanedResult.relationship_type = sanitizeText(cleanedResult.relationship_type) as string;
       }
       
+      // 处理potential_intermediary_B，可能是字符串或数组
       if (cleanedResult.potential_intermediary_B) {
+        // 保持原始类型（字符串或数组）
         cleanedResult.potential_intermediary_B = sanitizeText(cleanedResult.potential_intermediary_B);
       }
       
@@ -144,75 +153,77 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
     }
   });
 
-  // Use the custom hook to get sanctions data
-  const { sanctionsSet, checkEntitySanctioned, checkMultipleEntities, isDefiniteMatch, isLoading: sanctionsLoading, error: sanctionsError } = useSanctions();
+  // Use the custom hook to get NRO Listed data
+  const { nroSet, checkEntityNROListed, checkMultipleEntities, isDefiniteMatch, isLoading: nroListedLoading, error: nroListedError } = useNROListed();
 
-  // Log loading/error status for sanctions (optional)
+  // Log loading/error status for NRO Listed entities (optional)
   useEffect(() => {
-    if (sanctionsLoading) {
-      console.log('Loading sanctions list...');
-    } else if (sanctionsError) {
-      console.error('Error loading sanctions list:', sanctionsError);
+    if (nroListedLoading) {
+      console.log('Loading NRO Listed entities...');
+    } else if (nroListedError) {
+      console.error('Error loading NRO Listed entities:', nroListedError);
     } else {
-      console.log('Sanctions list loaded successfully.');
+      console.log('NRO Listed entities loaded successfully.');
     }
-  }, [sanctionsLoading, sanctionsError]);
+  }, [nroListedLoading, nroListedError]);
 
-  // 检查所有相关实体是否被制裁（使用多实体检查）
-  const riskItemSanctionResults = useMemo(() => {
+  // 检查所有相关实体是否在NRO列表中（使用多实体检查）
+  const riskItemNROListedResults = useMemo(() => {
     return checkMultipleEntities(result.risk_item);
   }, [checkMultipleEntities, result.risk_item]);
 
-  const intermediarySanctionResults = useMemo(() => {
-    return checkMultipleEntities(result.potential_intermediary_B);
+  const intermediaryNROListedResults = useMemo(() => {
+    // 如果是数组，将其转换为逗号分隔的字符串
+    const intermediary = Array.isArray(result.potential_intermediary_B) 
+      ? result.potential_intermediary_B.join(', ')
+      : result.potential_intermediary_B;
+    return checkMultipleEntities(intermediary);
   }, [checkMultipleEntities, result.potential_intermediary_B]);
 
-  const institutionASanctionResults = useMemo(() => {
+  const institutionANROListedResults = useMemo(() => {
     return checkMultipleEntities(result.institution_a);
   }, [checkMultipleEntities, result.institution_a]);
 
-  const institutionCSanctionResults = useMemo(() => {
+  const institutionCNROListedResults = useMemo(() => {
     return checkMultipleEntities(result.institution_c);
   }, [checkMultipleEntities, result.institution_c]);
   
   // 检查 Target Institution Name
-  const targetInstitutionSanctionResults = useMemo(() => {
+  const targetInstitutionNROListedResults = useMemo(() => {
     return checkMultipleEntities(result.target_institution_name);
   }, [checkMultipleEntities, result.target_institution_name]);
 
   // 整合所有检查结果
-  const allSanctionResults = useMemo(() => {
+  const allNROListedResults = useMemo(() => {
     return [
-      ...riskItemSanctionResults.map(check => ({ entity: 'Risk Item', check })),
-      ...intermediarySanctionResults.map(check => ({ entity: 'Intermediary', check })),
-      ...institutionASanctionResults.map(check => ({ entity: 'Institution A', check })),
-      ...institutionCSanctionResults.map(check => ({ entity: 'Institution C', check })),
-      ...targetInstitutionSanctionResults.map(check => ({ entity: 'Target Institution', check }))
+      ...riskItemNROListedResults.map(check => ({ entity: 'Risk Item', check })),
+      ...intermediaryNROListedResults.map(check => ({ entity: 'Intermediary', check })),
+      ...institutionANROListedResults.map(check => ({ entity: 'Institution A', check })),
+      ...institutionCNROListedResults.map(check => ({ entity: 'Institution C', check })),
+      ...targetInstitutionNROListedResults.map(check => ({ entity: 'Target Institution', check }))
     ];
-  }, [riskItemSanctionResults, intermediarySanctionResults, institutionASanctionResults, institutionCSanctionResults, targetInstitutionSanctionResults]);
+  }, [riskItemNROListedResults, intermediaryNROListedResults, institutionANROListedResults, institutionCNROListedResults, targetInstitutionNROListedResults]);
 
   // 分类匹配结果：确定匹配和可能匹配
   const definiteMatches = useMemo(() => {
-    return allSanctionResults.filter(item => 
-      isDefiniteMatch(item.check.matchLevel) && item.check.isSanctioned
+    return allNROListedResults.filter(item => 
+      isDefiniteMatch(item.check.matchLevel) && item.check.isNROListed
     );
-  }, [allSanctionResults, isDefiniteMatch]);
+  }, [allNROListedResults, isDefiniteMatch]);
 
   const possibleMatches = useMemo(() => {
-    return allSanctionResults.filter(item => 
-      item.check.matchLevel === MatchLevel.PARTIAL && item.check.isSanctioned
+    return allNROListedResults.filter(item => 
+      !isDefiniteMatch(item.check.matchLevel) && item.check.isNROListed
     );
-  }, [allSanctionResults]);
+  }, [allNROListedResults, isDefiniteMatch]);
 
-  // 判断是否有制裁实体（确定或可能匹配）
-  const hasDefiniteMatches = definiteMatches.length > 0;
-  const hasPossibleMatches = possibleMatches.length > 0;
-  const isSanctioned = hasDefiniteMatches || hasPossibleMatches;
+  // 判断是否有NRO列表实体
+  const hasNROListedEntities = definiteMatches.length > 0 || possibleMatches.length > 0;
   
-  // 获取匹配的制裁实体信息（用于兼容旧代码）
-  const matchedSanctionEntity = hasDefiniteMatches 
+  // 获取匹配的NRO列表实体信息（用于兼容旧代码）
+  const matchedNROListedEntity = hasNROListedEntities 
     ? definiteMatches[0].check.matchedEntity 
-    : (hasPossibleMatches ? possibleMatches[0].check.matchedEntity : undefined);
+    : (possibleMatches.length > 0 ? possibleMatches[0].check.matchedEntity : undefined);
 
   // 调试日志：打印sources数量和内容
   console.log(
@@ -225,15 +236,15 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-xl">{result.risk_item}</CardTitle>
-        {/* Conditionally render the sanctioned entity tag */}
-        {isSanctioned && (
+        {/* Conditionally render the NRO Listed entity tag */}
+        {hasNROListedEntities && (
           <div className="mt-1">
             <Dialog>
               <DialogTrigger asChild>
                 <span className="inline-block bg-yellow-200 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300 cursor-pointer hover:bg-yellow-300 transition-colors">
                   <div className="flex items-center">
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    {hasDefiniteMatches ? "Sanctioned Entity" : "Possible Sanction Match"}
+                    {definiteMatches.length > 0 ? "NRO Listed Entity" : "Possible NRO Listed Match"}
                   </div>
                 </span>
               </DialogTrigger>
@@ -241,15 +252,10 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
                 <DialogHeader>
                   <DialogTitle className="text-yellow-800 flex items-center">
                     <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
-                    Sanctioned Entities Found
+                    NRO Listed Entities Found
                   </DialogTitle>
                   <DialogDescription>
-                    {hasDefiniteMatches && hasPossibleMatches
-                      ? `Found ${definiteMatches.length} confirmed ${definiteMatches.length === 1 ? 'match' : 'matches'} and ${possibleMatches.length} possible ${possibleMatches.length === 1 ? 'match' : 'matches'}.`
-                      : hasDefiniteMatches
-                        ? `Found ${definiteMatches.length} confirmed ${definiteMatches.length === 1 ? 'match' : 'matches'} with sanctioned organizations.`
-                        : `Found ${possibleMatches.length} possible ${possibleMatches.length === 1 ? 'match' : 'matches'} with sanctioned organizations.`
-                    }
+                    {definiteMatches.length + possibleMatches.length} NRO listed {definiteMatches.length + possibleMatches.length === 1 ? 'entity' : 'entities'} found
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -348,9 +354,18 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
         </p>
         
         {result.potential_intermediary_B && (
-          <p className="text-sm font-medium">
-            Potential Intermediary: {result.potential_intermediary_B}
-          </p>
+          <div className="text-sm font-medium">
+            <p>Potential Intermediary:</p>
+            {Array.isArray(result.potential_intermediary_B) ? (
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                {result.potential_intermediary_B.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1">{result.potential_intermediary_B}</p>
+            )}
+          </div>
         )}
 
         <p className="text-sm text-muted-foreground mt-4">

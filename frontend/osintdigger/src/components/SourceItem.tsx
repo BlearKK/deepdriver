@@ -9,9 +9,10 @@ interface SourceItemProps {
   onResolve: (source: Source) => void; // Callback function to trigger URL resolution
   isResolving: boolean; // Flag to indicate if this specific source is being resolved
   resolveError?: string | null; // Error message specific to this source's resolution attempt
+  index?: number; // 添加索引属性，用于显示序号
 }
 
-const SourceItem: React.FC<SourceItemProps> = ({ source, onResolve, isResolving, resolveError }) => {
+const SourceItem: React.FC<SourceItemProps> = ({ source, onResolve, isResolving, resolveError, index }) => {
   // 检测是否是 Google Vertex AI URL
   const isGoogleVertexUrl = useMemo(() => {
     return source.url.includes('vertexaisearch.cloud.google.com/grounding-api-redirect/');
@@ -108,6 +109,10 @@ const SourceItem: React.FC<SourceItemProps> = ({ source, onResolve, isResolving,
     >
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center space-x-2 overflow-hidden">
+          {/* 显示序号，如果提供了index */}
+          {index !== undefined && (
+            <span className="text-sm font-bold text-orange-500 min-w-[30px]">【{index}】</span>
+          )}
           <TooltipProvider>
             <Tooltip delayDuration={100}>
               <TooltipTrigger asChild>

@@ -32,13 +32,36 @@ API_URL = "http://localhost:5000/api/check_risks"
 test_data = {
     "institution": "Tsinghua University",
     "country": "China",
-    "risk_list": ["Nanjing University of Aeronautics and Astronautics"]
+    "risk_list": ["Nanjing University of Aeronautics and Astronautics"],
+    "enable_grounding": True,  # 启用接地搜索功能
+    "time_range_start": "2010-01",  # 开始时间
+    "time_range_end": "2015-12"    # 结束时间
 }
 
-def test_api():
+def test_api(enable_grounding=True, time_range_start=None, time_range_end=None):
     """
     测试API是否正常工作
+    
+    Args:
+        enable_grounding (bool): 是否启用接地搜索功能
+        time_range_start (str): 开始时间，格式为 YYYY-MM
+        time_range_end (str): 结束时间，格式为 YYYY-MM
     """
+    # 更新测试数据
+    test_data["enable_grounding"] = enable_grounding
+    
+    # 更新时间范围参数
+    if time_range_start is not None:
+        test_data["time_range_start"] = time_range_start
+    elif "time_range_start" in test_data:
+        # 如果没有提供新的时间范围参数，但测试数据中存在，则保留
+        pass
+        
+    if time_range_end is not None:
+        test_data["time_range_end"] = time_range_end
+    elif "time_range_end" in test_data:
+        # 如果没有提供新的时间范围参数，但测试数据中存在，则保留
+        pass
     print("正在发送请求到API...")
     print(f"请求数据: {json.dumps(test_data, ensure_ascii=False, indent=2)}")
     
@@ -56,6 +79,44 @@ def test_api():
             print(f"\n[成功] API请求成功! 响应时间: {response_time:.2f}秒")
             
             # 解析JSON响应
+            results = response.json()
+            print(f"\n[响应数据] 共有 {len(results)} 个结果")
+            
+            # 显示第一个结果
+            if results and len(results) > 0:
+                first_result = results[0]
+                print(f"\n[第一个结果]")
+                print(f"风险项: {first_result.get('risk_item', 'N/A')}")
+                print(f"机构A: {first_result.get('institution_A', 'N/A')}")
+                print(f"关系类型: {first_result.get('relationship_type', 'N/A')}")
+                
+                # 输出搜索查询
+                if 'search_queries' in first_result:
+                    print("\n[搜索查询]")
+                    for query in first_result['search_queries']:
+                        print(f"- {query}")
+                
+                # 输出网络搜索查询
+                if 'webSearchQueries' in first_result:
+                    print("\n[网络搜索查询]")
+                    for query in first_result['webSearchQueries']:
+                        print(f"- {query}")
+                print(f"\n调查摘要:\n{first_result.get('finding_summary', 'N/A')}")
+                
+                # 显示来源
+                sources = first_result.get('sources', [])
+                if sources:
+                    print(f"\n来源: {len(sources)} 个")
+                    for i, source in enumerate(sources):
+                        print(f"  [{i+1}] {source}")
+                else:
+                    print("\n\u6ca1\u6709\u63d0\u4f9b\u6765\u6e90\u3002")
+        else:
+            print(f"\n[\u9519\u8bef] API\u8bf7\u6c42\u5931\u8d25! \u72b6\u6001\u7801: {response.status_code}")
+            print(f"\u54cd\u5e94\u5185\u5bb9: {response.text}")
+    
+    except Exception as e:
+        print(f"\n[\u9519\u8bef] \u53d1\u751f\u5f02\u5e38: {str(e)}")
 
 
 def test_url_resolver():
@@ -102,66 +163,7 @@ def test_url_resolver():
             print(f"  [错误] 测试过程中出现异常: {str(e)}")
         
         print("  " + "-" * 50)
-            result = response.json()
-            
-            # 打印结果
-            print("\n[结果] API返回结果:")
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            
-            # 检查结果格式
-            if isinstance(result, list):
-                print(f"\n[统计] 共返回 {len(result)} 个风险项结果")
-                
-                # 检查每个结果是否包含所需字段
-                for i, item in enumerate(result):
-                    print(f"\n[风险项 {i+1}] {item.get('risk_item', '未知')}")
-                    print(f"  - 关系类型: {item.get('relationship_type', '未知')}")
-                    print(f"  - 调查摘要: {item.get('finding_summary', '未知')}")
-                    print(f"  - 潜在中介: {item.get('potential_intermediary_B', '无')}")
-                    
-                    # 显示搜索元数据信息
-                    search_metadata = item.get('search_metadata', {})
-                    
-                    # 显示搜索查询信息
-                    search_queries = search_metadata.get('search_queries', [])
-                    if search_queries:
-                        print(f"  - 搜索查询: {search_queries}")
-                    
-                    # 显示渲染内容信息
-                    rendered_content = search_metadata.get('rendered_content')
-                    if rendered_content:
-                        print(f"  - 渲染内容长度: {len(rendered_content)} 字节")
-                        # 只显示前100个字符，避免输出过多
-                        print(f"  - 渲染内容预览: {rendered_content[:100]}...")
-                    
-                    # 兼容旧版格式
-                    if not search_metadata and (item.get('search_queries') or item.get('rendered_content')):
-                        print("  - 警告: 检测到旧版搜索元数据格式")
-                        old_search_queries = item.get('search_queries', [])
-                        if old_search_queries:
-                            print(f"  - 旧版搜索查询: {old_search_queries}")
-                        
-                        old_rendered_content = item.get('rendered_content')
-                        if old_rendered_content:
-                            print(f"  - 旧版渲染内容长度: {len(old_rendered_content)} 字节")
-                    
-                    sources = item.get('sources', [])
-                    print(f"  - 来源数量: {len(sources)}")
-                    if sources:
-                        print("  - 来源列表:")
-                        for j, source in enumerate(sources):
-                            print(f"    {j+1}. {source}")
-            else:
-                print("\n[错误] 返回格式错误，预期是列表，实际是:", type(result).__name__)
-        else:
-            print(f"\n[错误] API请求失败! 状态码: {response.status_code}")
-            print("错误信息:", response.text)
-    
-    except requests.exceptions.ConnectionError:
-        print("\n[错误] 连接错误! 请确保后端服务已启动，并运行在 http://localhost:5000")
-    except requests.exceptions.Timeout:
-        print("\n[错误] 请求超时! 后端服务可能处理时间较长，请尝试增加超时时间。")
-    except Exception as e:
+
         print(f"\n[错误] 测试过程中出错: {str(e)}")
 
 def test_url_resolution():
@@ -215,7 +217,6 @@ def test_url_resolution():
         
         for i, source in enumerate(sources):
             print(f"\n解析 URL {i+1}/{len(sources)}: {source}")
-            
             try:
                 # 调用 resolve_redirect_url 函数，增加超时时间
                 start_time = time.time()
@@ -236,6 +237,8 @@ def test_url_resolution():
                 
                 resolved_sources.append(resolved_data)
             except Exception as e:
+                print(f"  - 解析失败: {str(e)}")
+                continue
                 print(f"  - [错误] 解析过程中出错: {str(e)}")
                 # 即使出错，也添加一个错误对象
                 resolved_sources.append({'url': source, 'status': 'ok', 'note': f'解析错误: {str(e)}'})
@@ -360,24 +363,27 @@ def print_help():
     """
     print("使用方法: python test_api.py [选项]")
     print("选项:")
-    print("  --api       测试 API 是否正常工作 (默认)")
-    print("  --url       测试 URL 解析功能")
-    print("  --resolve   测试 /api/resolve_urls 端点")
-    print("  --all       运行所有测试")
-    print("  --help      显示此帮助信息")
+    print("  --api             测试 API 是否正常工作，启用接地搜索 (默认)")
+    print("  --api-no-grounding 测试 API 是否正常工作，不启用接地搜索")
+    print("  --url             测试 URL 解析功能")
+    print("  --resolve         测试 /api/resolve_urls 端点")
+    print("  --all             运行所有测试")
+    print("  --help            显示此帮助信息")
 
 if __name__ == "__main__":
     # 解析命令行参数
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
         if arg == "--api":
-            test_api()
+            test_api(enable_grounding=True, time_range_start="2010-01", time_range_end="2015-12")
+        elif arg == "--api-no-grounding":
+            test_api(enable_grounding=False, time_range_start="2010-01", time_range_end="2015-12")
         elif arg == "--url":
             test_url_resolution()
         elif arg == "--resolve":
             test_resolve_urls_api()
         elif arg == "--all":
-            test_api()
+            test_api(enable_grounding=True, time_range_start="2010-01", time_range_end="2015-12")
             print("\n" + "-"*80 + "\n")
             test_url_resolution()
             print("\n" + "-"*80 + "\n")
@@ -385,8 +391,8 @@ if __name__ == "__main__":
         elif arg == "--help":
             print_help()
         else:
-            print(f"未知选项: {arg}")
+            print(f"\n[错误] 未知参数: {arg}")
             print_help()
     else:
-        # 默认运行 API 测试
-        test_api()
+        # 默认运行带时间范围的API测试
+        test_api(enable_grounding=True, time_range_start="2010-01", time_range_end="2015-12")

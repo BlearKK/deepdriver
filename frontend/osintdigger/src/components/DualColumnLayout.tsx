@@ -14,6 +14,9 @@ import ResultCard from "./ResultCard";
 // 导入 Source 类型，从集中的类型定义文件导入
 import { Source } from "@/types";
 
+// 导入月份选择器组件
+import { MonthPicker } from "./ui/month-picker";
+
 type InvestigationStatus = 'idle' | 'loading' | 'error' | 'success';
 
 // 与 ResultCard 组件中的 ResultCardProps.result 类型保持一致
@@ -40,12 +43,16 @@ const DualColumnLayout = () => {
   const [riskList, setRiskList] = useState<string>('');
   const [results, setResults] = useState<RiskResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  
+  // 添加时间范围状态
+  const [timeRangeStart, setTimeRangeStart] = useState<Date | undefined>(undefined);
+  const [timeRangeEnd, setTimeRangeEnd] = useState<Date | undefined>(undefined);
 
   // 处理开始调查按钮点击事件
   const handleStartInvestigation = async () => {
     // 验证输入
-    if (!institution || !country || !riskList) {
-      setErrorMessage('请填写所有必填字段');
+    if (!institution || !riskList) {
+      setErrorMessage('Please fill in Institution Name and Risk List');
       setStatus('error');
       return;
     }
@@ -61,14 +68,37 @@ const DualColumnLayout = () => {
         .filter(item => item.length > 0);
       
       // 准备请求数据
-      const requestData = {
+      const requestData: any = {
         institution,
-        country,
-        risk_list: riskItems
+        country: country.trim() || "Worldwide",  // 如果不填写location则默认为"Worldwide"
+        risk_list: riskItems,
+        enable_grounding: true  // 启用接地搜索功能
       };
       
+      // 添加时间范围参数（如果有）
+      if (timeRangeStart) {
+        requestData.time_range_start = timeRangeStart.toISOString().substring(0, 7); // 格式化为 YYYY-MM
+      }
+      
+      if (timeRangeEnd) {
+        requestData.time_range_end = timeRangeEnd.toISOString().substring(0, 7); // 格式化为 YYYY-MM
+      }
+      
       // 使用环境变量获取API基础URL
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      
+      // 确保apiBaseUrl是一个绝对URL
+      // 注意：如果是localhost，始终使用http协议
+      if (apiBaseUrl && !apiBaseUrl.startsWith('http')) {
+        if (apiBaseUrl.includes('localhost') || apiBaseUrl.includes('127.0.0.1')) {
+          apiBaseUrl = `http://${apiBaseUrl}`;
+        } else {
+          apiBaseUrl = `https://${apiBaseUrl}`;
+        }
+      }
+      
+      console.log(`使用API基础URL: ${apiBaseUrl}`);
+      console.log('发送请求数据:', requestData);
       
       // 发送请求到后端API
       const response = await fetch(`${apiBaseUrl}/api/check_risks`, {
@@ -81,17 +111,23 @@ const DualColumnLayout = () => {
       
       // 检查响应状态
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '请求失败');
+        let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('解析错误响应失败:', parseError);
+        }
+        throw new Error(errorMessage);
       }
       
       // 解析响应数据
       const data = await response.json();
-
-      // 调试日志：打印API原始返回内容及sources情况
-      console.log("【API原始返回】", data);
+      console.log("API原始返回数据:", data);
       
-      // 处理API返回的数据，将字符串数组sources转换为Source对象数组
+      // 处理API返回的数据
       const processedData: RiskResult[] = Array.isArray(data) ? data.map(item => {
         // 创建一个新的结果对象，默认包含所有必需字段
         const resultItem: RiskResult = {
@@ -136,7 +172,7 @@ const DualColumnLayout = () => {
         return resultItem;
       }) : [];
       
-      console.log("【处理后的数据】", processedData);
+      console.log("处理后的数据:", processedData);
       
       // 更新状态和结果
       setResults(processedData);
@@ -157,25 +193,54 @@ const DualColumnLayout = () => {
           <div className="w-full md:w-2/5 p-6 bg-white rounded-l-lg">
             <div className="space-y-6">
               <Card className="p-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Target Institution Information</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="institution-name">Target Institution Name</Label>
-                  <Input
-                    id="institution-name"
-                    placeholder="Enter full institution name"
-                    className="mb-4"
-                    value={institution}
-                    onChange={(e) => setInstitution(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country-region">Country/Region</Label>
-                  <Input
-                    id="country-region"
-                    placeholder="Enter country or region"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                  />
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Target Information</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="institution">Target Institution Name</Label>
+                    <Input 
+                      id="institution" 
+                      placeholder="Enter institution name..."
+                      value={institution}
+                      onChange={(e) => setInstitution(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Location/Country</Label>
+                    <Input 
+                      id="country" 
+                      placeholder="Enter country or location..."
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                    />
+                  </div>
+                  
+                  {/* Time Range Selector */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <MonthPicker
+                      date={timeRangeStart}
+                      setDate={setTimeRangeStart}
+                      label="Start Date"
+                      placeholder="Select Start Month"
+                    />
+                    <MonthPicker
+                      date={timeRangeEnd}
+                      setDate={setTimeRangeEnd}
+                      label="End Date"
+                      placeholder="Select End Month"
+                    />
+                  </div>
+                  
+                  {/* Time Range Hint */}
+                  {(timeRangeStart || timeRangeEnd) && (
+                    <div className="text-xs text-muted-foreground">
+                      {timeRangeStart && timeRangeEnd ? 
+                        `Search Range: ${timeRangeStart.toISOString().substring(0, 7)} to ${timeRangeEnd.toISOString().substring(0, 7)}` :
+                        timeRangeStart ? 
+                          `Start Date: ${timeRangeStart.toISOString().substring(0, 7)}` : 
+                          `End Date: ${timeRangeEnd?.toISOString().substring(0, 7)}`
+                      }
+                    </div>
+                  )}
                 </div>
               </Card>
 
@@ -219,7 +284,7 @@ const DualColumnLayout = () => {
                 <h2 className="text-lg font-semibold text-gray-800 mb-2">Action Section</h2>
                 <Button 
                   className="w-full mt-4"
-                  disabled={status === 'loading' || !institution || !country || !riskList}
+                  disabled={status === 'loading' || !institution || !riskList}
                   onClick={handleStartInvestigation}
                 >
                   {status === 'loading' ? 'Processing...' : 'Start Investigation'}
