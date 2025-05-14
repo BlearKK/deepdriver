@@ -48,42 +48,23 @@ interface ResultCardProps {
   };
 }
 
-/**
- * 安全地处理文本内容，确保所有输入都能被安全地渲染
- * 处理null、undefined、非字符串类型和数组
- */
+// 安全地处理文本内容，移除可能导致React渲染错误的数字引用
 const sanitizeText = (text: string | string[] | null | undefined): string | string[] => {
-  // 处理null和undefined
-  if (text === null || text === undefined) {
-    return "";
-  }
+  if (!text) return "";
   
-  // 处理数组 - 递归处理每个元素
+  // 如果是数组，对每个元素进行处理
   if (Array.isArray(text)) {
-    // 过滤掉数组中的null和undefined值
-    return text
-      .filter(item => item !== null && item !== undefined)
-      .map(item => sanitizeText(item) as string);
+    return text.map(item => sanitizeText(item) as string);
   }
   
   try {
-    // 处理非字符串类型
+    // 确保文本是字符串类型
     if (typeof text !== 'string') {
       console.log(`sanitizeText received non-string value of type ${typeof text}:`, text);
-      try {
-        return String(text); // 尝试转换为字符串
-      } catch (e) {
-        console.error("Failed to convert to string:", e);
-        return "[Unparsable data]";
-      }
+      return String(text); // 将非字符串值转换为字符串
     }
     
-    // 处理空字符串
-    if (text.trim() === "") {
-      return "";
-    }
-    
-    // 返回处理后的文本
+    // 保留原始的文本格式
     return text;
   } catch (error) {
     console.error("Error sanitizing text:", error);
@@ -91,80 +72,41 @@ const sanitizeText = (text: string | string[] | null | undefined): string | stri
   }
 };
 
-/**
- * ResultCard组件 - 显示搜索结果卡片
- * 包含完整的错误处理和数据验证
- */
 const ResultCard = ({ result: initialResult }: ResultCardProps) => {
-  // 错误状态管理
-  const [hasError, setHasError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  // 添加错误状态
+  const [hasError, setHasError] = useState(false);
   
-  // 使用useMemo处理初始数据，避免不必要的重复计算
-  const sanitizedInitialResult = useMemo(() => {
-    if (!initialResult) {
-      console.error("ResultCard received null or undefined result");
-      setHasError(true);
-      setErrorMessage("No result data provided");
-      return {
-        risk_item: "Unknown Risk Item",
-        relationship_type: "Unknown",
-        finding_summary: "No data available",
-        sources: []
-      };
-    }
-    
+  // 使用内部状态管理 result，以便于更新 UI
+  const [result, setResult] = useState(() => {
     try {
-      // 创建深拷贝，避免修改原始数据
-      const cleanedResult = JSON.parse(JSON.stringify(initialResult));
+      // 深度复制并清理initialResult对象
+      const cleanedResult = {...initialResult};
       
-      // 系统地处理所有可能的字段
-      const fieldsToSanitize = [
-        'risk_item', 'relationship_type', 'finding_summary', 
-        'institution_a', 'institution_c', 'target_institution_name'
-      ];
+      // 处理finding_summary
+      if (cleanedResult.finding_summary) {
+        cleanedResult.finding_summary = sanitizeText(cleanedResult.finding_summary) as string;
+      }
       
-      // 处理基本字符串字段
-      fieldsToSanitize.forEach(field => {
-        if (field in cleanedResult) {
-          cleanedResult[field] = sanitizeText(cleanedResult[field]);
-        }
-      });
+      // 处理其他可能包含问题字符的字段
+      if (cleanedResult.risk_item) {
+        cleanedResult.risk_item = sanitizeText(cleanedResult.risk_item) as string;
+      }
       
-      // 特殊处理potential_intermediary_B（可能是字符串或数组）
-      if ('potential_intermediary_B' in cleanedResult) {
+      if (cleanedResult.relationship_type) {
+        cleanedResult.relationship_type = sanitizeText(cleanedResult.relationship_type) as string;
+      }
+      
+      // 处理potential_intermediary_B，可能是字符串或数组
+      if (cleanedResult.potential_intermediary_B) {
+        // 保持原始类型（字符串或数组）
         cleanedResult.potential_intermediary_B = sanitizeText(cleanedResult.potential_intermediary_B);
-      }
-      
-      // 处理嵌套对象 search_metadata
-      if (cleanedResult.search_metadata) {
-        if (cleanedResult.search_metadata.rendered_content) {
-          cleanedResult.search_metadata.rendered_content = 
-            sanitizeText(cleanedResult.search_metadata.rendered_content) as string;
-        }
-        
-        if (cleanedResult.search_metadata.search_queries) {
-          cleanedResult.search_metadata.search_queries = 
-            sanitizeText(cleanedResult.search_metadata.search_queries) as string[];
-        }
-      }
-      
-      // 处理旧格式的字段
-      if ('rendered_content' in cleanedResult) {
-        cleanedResult.rendered_content = sanitizeText(cleanedResult.rendered_content) as string;
-      }
-      
-      if ('search_queries' in cleanedResult) {
-        cleanedResult.search_queries = sanitizeText(cleanedResult.search_queries) as string[];
       }
       
       return cleanedResult;
     } catch (error) {
-      console.error("Error sanitizing result data:", error);
+      console.error("Error initializing result state:", error);
       setHasError(true);
-      setErrorMessage(error instanceof Error ? error.message : "Unknown error processing data");
-      
-      // 返回安全的默认对象
+      // 返回一个安全的默认对象
       return {
         risk_item: initialResult?.risk_item || "Unknown Risk Item",
         relationship_type: "Unknown",
@@ -172,45 +114,29 @@ const ResultCard = ({ result: initialResult }: ResultCardProps) => {
         sources: []
       };
     }
-  }, [initialResult]);
+  });
   
-  // 使用状态管理处理后的结果
-  const [result, setResult] = useState(sanitizedInitialResult);
-  
-  // 当sanitizedInitialResult变化时更新result
+  // 错误处理函数
   useEffect(() => {
-    setResult(sanitizedInitialResult);
-  }, [sanitizedInitialResult]);
-  
-  // 全局错误处理
-  useEffect(() => {
-    const handleError = (error: Error) => {
-      console.error("ResultCard error:", error);
+    const handleError = () => {
       setHasError(true);
-      setErrorMessage(error.message || "An unexpected error occurred");
+      console.error("Error detected in ResultCard component");
     };
     
-    // 设置全局错误处理器
-    window.addEventListener('error', (event) => {
-      if (event.error) handleError(event.error);
-    });
-    
-    // 验证初始数据
-    if (initialResult && typeof initialResult === 'object') {
-      // 验证关键属性
-      if (initialResult.finding_summary && 
-          typeof initialResult.finding_summary === 'string' && 
-          initialResult.finding_summary.includes('[')) {
-        console.warn("Finding summary contains potentially problematic brackets:", 
-                    initialResult.finding_summary.substring(0, 100));
+    // 尝试捕获任何渲染错误
+    try {
+      if (initialResult && typeof initialResult === 'object') {
+        // 验证关键属性
+        if (initialResult.finding_summary && 
+            typeof initialResult.finding_summary === 'string' && 
+            initialResult.finding_summary.includes('[')) {
+          console.warn("Finding summary contains potentially problematic brackets:", 
+                      initialResult.finding_summary.substring(0, 100));
+        }
       }
+    } catch (error) {
+      handleError();
     }
-    
-    return () => {
-      window.removeEventListener('error', (event) => {
-        if (event.error) handleError(event.error);
-      });
-    };
   }, [initialResult]);
   
   // 使用NRO列表检查功能

@@ -9,6 +9,7 @@ from config import logger
 from gemini_service import investigate_risks
 from response_parser import parse_gemini_response
 from url_resolver import batch_resolve_urls
+from datetime import datetime
 
 def register_routes(app):
     """
@@ -17,6 +18,33 @@ def register_routes(app):
     Args:
         app: Flask 应用实例
     """
+    # 添加健康检查端点 - 使用不同的函数名避免冲突
+    @app.route('/api/status', methods=['GET', 'OPTIONS'])
+    def api_status_check():
+        """
+        健康检查端点，用于验证API是否可访问
+        使用/api/status而非/api/health以避免与现有端点冲突
+        """
+        print("API status check endpoint called")
+        # 记录请求头信息，用于调试
+        print(f"Request headers: {dict(request.headers)}")
+        
+        # 返回简单的JSON响应
+        response = jsonify({
+            'status': 'ok',
+            'message': 'API is running',
+            'timestamp': datetime.now().isoformat(),
+            'version': '1.0.0',
+            'cors_enabled': True
+        })
+        
+        # 添加CORS头部
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        
+        return response
+    
     @app.route('/api/check_risks', methods=['POST'])
     def check_risks():
         """

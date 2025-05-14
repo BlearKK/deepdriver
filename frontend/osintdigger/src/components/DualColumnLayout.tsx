@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LoaderCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import ResultCard from "./ResultCard";
 
@@ -37,6 +38,7 @@ type RiskResult = {
 };
 
 const DualColumnLayout = () => {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<InvestigationStatus>('idle');
   const [institution, setInstitution] = useState<string>('');
   const [country, setCountry] = useState<string>('');
@@ -47,9 +49,18 @@ const DualColumnLayout = () => {
   // 添加时间范围状态
   const [timeRangeStart, setTimeRangeStart] = useState<Date | undefined>(undefined);
   const [timeRangeEnd, setTimeRangeEnd] = useState<Date | undefined>(undefined);
+  
+  // 切换到DeepSearch模式
+  const switchToDeepSearch = () => {
+    navigate('/deepsearch');
+  };
 
   // 处理开始调查按钮点击事件
   const handleStartInvestigation = async () => {
+    // 声明变量来存储超时ID，确保在catch块中可用
+    let timeoutId: NodeJS.Timeout | null = null;
+    let apiBaseUrl = '';
+    
     // 验证输入
     if (!institution || !riskList) {
       setErrorMessage('Please fill in Institution Name and Risk List');
@@ -84,11 +95,23 @@ const DualColumnLayout = () => {
         requestData.time_range_end = timeRangeEnd.toISOString().substring(0, 7); // 格式化为 YYYY-MM
       }
       
-      // 使用环境变量获取API基础URL
-      let apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      // 获取API基础URL
+      // 1. 先尝试使用环境变量
+      let envApiUrl = import.meta.env.VITE_API_BASE_URL;
       
-      // 确保apiBaseUrl是一个绝对URL
-      // 注意：如果是localhost，始终使用http协议
+      // 2. 如果环境变量不存在，则使用相对路径（适用于生产环境）
+      if (!envApiUrl) {
+        // 在生产环境中，前端和后端可能部署在同一个域名下
+        // 使用相对路径连接API
+        apiBaseUrl = window.location.origin;
+        console.log(`使用当前域名作为API基础URL: ${apiBaseUrl}`);
+      } else {
+        // 3. 如果环境变量存在，则使用环境变量的值
+        apiBaseUrl = envApiUrl;
+        console.log(`使用环境变量的API基础URL: ${apiBaseUrl}`);
+      }
+      
+      // 4. 确保apiBaseUrl是一个绝对URL
       if (apiBaseUrl && !apiBaseUrl.startsWith('http')) {
         if (apiBaseUrl.includes('localhost') || apiBaseUrl.includes('127.0.0.1')) {
           apiBaseUrl = `http://${apiBaseUrl}`;
@@ -97,38 +120,195 @@ const DualColumnLayout = () => {
         }
       }
       
+      // 记录最终使用的URL
+      console.log(`最终使用的API基础URL: ${apiBaseUrl}`);
+      
       console.log(`使用API基础URL: ${apiBaseUrl}`);
       console.log('发送请求数据:', requestData);
       
       // 发送请求到后端API
-      const response = await fetch(`${apiBaseUrl}/api/check_risks`, {
+      const apiUrl = `${apiBaseUrl}/api/check_risks`;
+      console.log(`发送请求到: ${apiUrl}`);
+      console.log('请求数据:', JSON.stringify(requestData));
+      
+      // Set request timeout - increased to 120 seconds as Gemini API calls may take longer
+      const controller = new AbortController();
+      console.log('Setting request timeout to 120 seconds');
+      timeoutId = setTimeout(() => {
+        console.log('Request timeout, aborting...');
+        controller.abort();
+      }, 120000); // 120 seconds timeout
+      
+      // Check API status before sending the main request
+      try {
+        const statusUrl = `${apiBaseUrl}/api/status`;
+        console.log(`Checking API status at: ${statusUrl}`);
+        const statusResponse = await fetch(statusUrl, {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-cache',
+          // 添加更多的调试信息
+          headers: {
+            'X-Client-Info': 'Frontend/1.0',
+            'Accept': 'application/json'
+          }
+        }).catch(error => {
+          console.log(`API status check failed: ${error.message}`);
+          return null;
+        });
+        
+        if (statusResponse && statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          console.log(`API status check successful: ${JSON.stringify(statusData)}`);
+          console.log(`Connection to backend confirmed at: ${apiBaseUrl}`);
+        } else {
+          console.log(`API status check failed with status: ${statusResponse?.status || 'No response'}`);
+          console.log(`This may indicate CORS or network connectivity issues`);
+        }
+      } catch (error) {
+        console.log(`Error during API status check: ${error}`);
+        // Continue with the main request even if status check fails
+      }
+      
+      // Add more debug information
+      console.log(`Sending request to: ${apiUrl}`);
+      console.log(`Request data: ${JSON.stringify(requestData).substring(0, 200)}...`);
+      
+      // Implement request retry mechanism with improved error handling
+      const fetchWithRetry = async (url: string, options: RequestInit, maxRetries = 3) => {
+        let retries = 0;
+        let lastError: Error | null = null;
+        
+        while (retries < maxRetries) {
+          try {
+            console.log(`Sending request (attempt ${retries + 1}/${maxRetries})`);
+            const response = await fetch(url, options);
+            
+            // Check if the response is ok (status in the range 200-299)
+            if (!response.ok) {
+              // Try to get more details about the error
+              try {
+                const errorData = await response.text();
+                console.log(`Server responded with status ${response.status}: ${errorData}`);
+              } catch (e) {
+                console.log(`Server responded with status ${response.status}, but could not read error details`);
+              }
+              
+              // For 4xx errors (except 429 Too Many Requests), don't retry
+              if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+                console.log(`Client error (${response.status}), not retrying`);
+                return response; // Return the error response to be handled by the caller
+              }
+              
+              // For other errors, retry
+              throw new Error(`HTTP error: ${response.status}`);
+            }
+            
+            return response;
+          } catch (error) {
+            lastError = error as Error;
+            retries++;
+            
+            // Categorize the error
+            let errorType = "Unknown error";
+            if (error.name === "AbortError") {
+              errorType = "Timeout error";
+            } else if (error.name === "TypeError" && error.message === "Failed to fetch") {
+              errorType = "Network error (CORS or connectivity issue)";
+            }
+            
+            console.log(`Request failed, ${errorType}: ${error.message}`);
+            console.log(`Retrying (${retries}/${maxRetries})...`);
+            
+            if (retries === maxRetries) {
+              console.log('All retry attempts failed');
+              throw lastError;
+            }
+            
+            // Wait before retrying, increasing wait time with each retry
+            const waitTime = 1000 * retries;
+            console.log(`Waiting ${waitTime}ms before next retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
+        
+        // If all retries fail, throw the last error
+        throw lastError;
+      };
+      
+      // 简化请求配置
+      const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-        body: JSON.stringify(requestData)
-      });
+        body: JSON.stringify(requestData),
+        mode: 'cors' as RequestMode,
+        credentials: 'omit' as RequestCredentials,
+        signal: controller.signal,
+        cache: 'no-cache' as RequestCache,
+      };
+      
+      console.log('使用简化的请求配置发送请求');
+      const response = await fetchWithRetry(apiUrl, requestOptions, 3);
+      
+      // 清除超时计时器
+      clearTimeout(timeoutId);
+      timeoutId = null;
+      
+      console.log(`收到响应状态码: ${response.status}`);
       
       // 检查响应状态
       if (!response.ok) {
         let errorMessage = `请求失败: ${response.status} ${response.statusText}`;
+        console.error(`API请求失败: ${response.status} ${response.statusText}`);
+        
+        // 记录响应头部信息以便调试
+        const headers = {};
+        response.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        console.error('响应头部:', headers);
+        
         try {
           const errorData = await response.json();
+          console.error('错误详情:', errorData);
           if (errorData && errorData.error) {
             errorMessage = errorData.error;
           }
-        } catch (parseError) {
-          console.error('解析错误响应失败:', parseError);
+        } catch (e) {
+          // 如果无法解析JSON，尝试获取原始文本
+          try {
+            const textResponse = await response.text();
+            console.error('原始错误响应:', textResponse);
+            if (textResponse) {
+              errorMessage += ` - ${textResponse.substring(0, 100)}`;
+            }
+          } catch (textError) {
+            console.error('无法获取响应文本:', textError);
+          }
         }
         throw new Error(errorMessage);
+      } else {
+        console.log('请求成功，正在解析响应数据...');
       }
       
-      // 解析响应数据
-      const data = await response.json();
-      console.log("API原始返回数据:", data);
+      // 尝试解析响应数据
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('API原始返回数据:', responseData);
+      } catch (jsonError) {
+        console.error('解析JSON响应失败:', jsonError);
+        // 尝试获取原始文本
+        const textResponse = await response.text();
+        console.log('原始响应文本:', textResponse);
+        throw new Error(`无法解析响应数据: ${jsonError.message}`);
+      }
       
       // 处理API返回的数据
-      const processedData: RiskResult[] = Array.isArray(data) ? data.map(item => {
+      const processedData: RiskResult[] = Array.isArray(responseData) ? responseData.map(item => {
         // 创建一个新的结果对象，默认包含所有必需字段
         const resultItem: RiskResult = {
           risk_item: item.risk_item || '',
@@ -177,10 +357,56 @@ const DualColumnLayout = () => {
       // 更新状态和结果
       setResults(processedData);
       setStatus('success');
-    } catch (error) {
-      console.error('调查失败:', error);
-      setErrorMessage(error instanceof Error ? error.message : '未知错误');
+    } catch (err) {
+      console.error('调查失败:', err);
+      
+      // 清除超时计时器（如果存在）
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      // 添加更详细的错误信息
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        setErrorMessage(`无法连接到后端服务器(${apiBaseUrl})。请确保后端服务正在运行，并检查网络连接。`);
+        
+        // 尝试发送一个简单的请求来测试连接
+        // 先测试当前域名下的健康检查端点
+        fetch(`${window.location.origin}/health`, { 
+          mode: 'no-cors',
+          cache: 'no-cache' 
+        })
+          .then(resp => {
+            console.log('当前域名健康检查结果:', resp.status);
+          })
+          .catch(e => {
+            console.error('当前域名健康检查失败:', e);
+            
+            // 如果当前域名下的健康检查失败，尝试直接访问配置的API URL
+            fetch(`${apiBaseUrl}/health`, { 
+              mode: 'no-cors',
+              cache: 'no-cache' 
+            })
+              .then(resp => {
+                console.log('配置API URL健康检查结果:', resp.status);
+              })
+              .catch(e2 => {
+                console.error('配置API URL完全不可访问:', e2);
+              });
+          });
+          
+        // 记录当前网络状态
+        console.log('当前网络状态:', navigator.onLine ? '在线' : '离线');
+        console.log('当前页面URL:', window.location.href);
+        console.log('当前域名:', window.location.origin);
+        
+      } else if (err.name === 'AbortError') {
+        setErrorMessage('请求超时。请检查网络连接或稍后重试。');
+      } else {
+        setErrorMessage(err instanceof Error ? err.message : '未知错误');
+      }
       setStatus('error');
+      setResults([]);
     }
   };
 
@@ -289,6 +515,18 @@ const DualColumnLayout = () => {
                 >
                   {status === 'loading' ? 'Processing...' : 'Start Investigation'}
                 </Button>
+                
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Advanced Options</h3>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={switchToDeepSearch}
+                  >
+                    Switch to DeepSearch Mode
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">分析目标机构与Named Research Organizations的关系</p>
+                </div>
               </Card>
             </div>
           </div>

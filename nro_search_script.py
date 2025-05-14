@@ -119,7 +119,7 @@ def main():
     if not nro_data:
         return
     
-    risk_list = [item["name"] for item in nro_data]
+    risk_list = [item["Name"] for item in nro_data]
     print(f"已加载 {len(risk_list)} 个研究机构名称")
     
     # 读取Prompt模板

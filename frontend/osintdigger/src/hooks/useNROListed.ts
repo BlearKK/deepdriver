@@ -106,7 +106,19 @@ export const useNROListed = (): UseNROListedReturn => {
   /**
    * 规范化实体名称，处理括号内的缩写和其他常见格式
    */
-  const normalizeEntityName = (name: string): { normalized: string, acronym: string | null } => {
+  const normalizeEntityName = (name: string | null | undefined): { normalized: string, acronym: string | null } => {
+    // 处理空值
+    if (name === null || name === undefined) {
+      console.log('normalizeEntityName received null or undefined value');
+      return { normalized: '', acronym: null };
+    }
+    
+    // 确保是字符串类型
+    if (typeof name !== 'string') {
+      console.log(`normalizeEntityName received non-string value of type ${typeof name}:`, name);
+      name = String(name);
+    }
+    
     // 去除前后空格并转为小写
     const trimmed = name.trim().toLowerCase();
     
@@ -139,6 +151,9 @@ export const useNROListed = (): UseNROListedReturn => {
     
     // 1. 先尝试完全匹配（精确匹配）
     for (const nroEntity of nroList) {
+      // 确保nroEntity和name存在
+      if (!nroEntity || !nroEntity.name) continue;
+      
       const nroNameNormalized = normalizeEntityName(nroEntity.name).normalized;
       
       // 1.1 检查规范化后的名称是否完全匹配
@@ -153,6 +168,7 @@ export const useNROListed = (): UseNROListedReturn => {
       
       // 1.2 检查别名是否匹配
       if (nroEntity.aliases?.some(alias => {
+        if (!alias) return false;
         const aliasNormalized = normalizeEntityName(alias).normalized;
         return entityNameLower === aliasNormalized;
       })) {
@@ -165,7 +181,7 @@ export const useNROListed = (): UseNROListedReturn => {
       }
       
       // 1.3 如果实体名称中有括号内的缩写，检查是否与NRO实体的缩写匹配
-      if (entityAcronym && nroEntity.aliases?.some(alias => alias.toLowerCase() === entityAcronym)) {
+      if (entityAcronym && nroEntity.aliases?.some(alias => alias && alias.toLowerCase() === entityAcronym)) {
         return { 
           matchLevel: MatchLevel.ACRONYM, 
           isNROListed: true, 
@@ -177,6 +193,9 @@ export const useNROListed = (): UseNROListedReturn => {
     
     // 2. 检查缩写匹配
     for (const nroEntity of nroList) {
+      // 确保nroEntity和name存在
+      if (!nroEntity || !nroEntity.name) continue;
+      
       // 2.1 检查实体名称是否是NRO实体的缩写
       // 例如："PHRC" 是 "Physics Research Center" 的缩写
       if (isAcronym(entityNameLower, nroEntity.name.toLowerCase())) {
@@ -189,7 +208,7 @@ export const useNROListed = (): UseNROListedReturn => {
       }
       
       // 2.2 检查NRO实体是否是实体名称的缩写
-      if (isAcronym(nroEntity.name.toLowerCase(), entityNameLower)) {
+      if (nroEntity.name && isAcronym(nroEntity.name.toLowerCase(), entityNameLower)) {
         return { 
           matchLevel: MatchLevel.ACRONYM, 
           isNROListed: true, 
@@ -201,6 +220,8 @@ export const useNROListed = (): UseNROListedReturn => {
       // 2.3 检查别名中的缩写
       if (nroEntity.aliases?.length) {
         for (const alias of nroEntity.aliases) {
+          // 确保alias存在
+          if (!alias) continue;
           const aliasLower = alias.toLowerCase();
           
           // 检查实体名称是否是别名的缩写

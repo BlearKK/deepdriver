@@ -1,0 +1,533 @@
+[
+  {
+    "risk_item": "A.A. Kharkevich Institute for Information Transmission Problems, IITP, Russian Academy of Sciences (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Academy of Military Medical Sciences (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Academy of Military Science (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Aerospace Research Institute (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Indirect",
+    "finding_summary": "Sharif University of Technology has established cooperation with Aerospace Industries Organization (AIO) for satellite production and signed agreements with Iran Space Research Center to create a 'space park'. These entities are closely tied to Iran's aerospace ecosystem, suggesting indirect collaboration pathways with the Aerospace Research Institute through shared governmental networks and overlapping research objectives in defense-related aerospace technologies."
+  },
+  {
+    "risk_item": "Air Force Medical University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Air Force Research Institute (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Air Force Xi'an Flight Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Command College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Communication NCO Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Both institutions are listed in Canada's Named Research Organizations list under 'Sensitive Technology Research and Affiliations of Concern', indicating they are jointly recognized as high-risk entities for national security. The document explicitly lists 'Sharif University of Technology' with aliases including 'Arya-Mehr University of Technology' and 'SHFT', while 'Airforce Communication NCO Academy (People's Republic of China)' is separately listed as a named organization. This co-listing in an official security advisory suggests a contextual association in risk assessments, though no direct collaborative projects or personnel exchanges are documented in the available sources."
+  },
+  {
+    "risk_item": "Airforce Early Warning Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Engineering University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Flight Academy Shijiazhuang (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Harbin Flight Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Airforce Logistics University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Sharif University of Technology (Iran) is listed with the alias 'SHFT' and 'SUT: Sharif Technical University' in Canadian government documents[1][4], while Airforce Logistics University (China) shares the identical alias 'SUT: Sharif Technical University' in the same source[4]. This creates a naming overlap through the shared 'Sharif Technical University' designation, though no direct institutional collaboration or operational links are documented. European Union court documents further note Sharif University of Technology's collaborations with Iranian government entities[2], but no explicit connections to Chinese military academies are cited."
+  },
+  {
+    "risk_item": "Army Academy of Armored Forces (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Academy of Artillery and Air Defense (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Academy of Border and Coastal Defense (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Sharif University of Technology (SUT) is explicitly listed as a known alias of the Army Academy of Border and Coastal Defense in official Canadian government documents regarding research security[1][3]. This designation appears in the Named Research Organizations list under Canada's Policy on Sensitive Technology Research and Affiliations of Concern, which identifies institutions with military/defense connections. However, no specific collaborative projects, funding ties, or personnel exchanges between SUT and the Chinese military academy were found in publicly available sources. The connection appears to be formally recognized in security policy frameworks rather than through documented operational cooperation."
+  },
+  {
+    "risk_item": "Army Aviation College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Engineering University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Infantry Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Medical University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Military Transportation Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Research Institute (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Service Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Army Special Operations Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Autonomous Noncommercial Organization Professional Association of Designers of Data Processing Systems (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Aviation University of Air Force (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Baghyatollah Medical Sciences University (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Beihang University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Beijing Computational Science Research Centre (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Beijing Electronic Science and Technology Institute (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Beijing Institute of Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Beijing University of Posts and Telecommunications (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Center for High Pressure Science and Technology Advanced Research (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Chengdu Fine Optical Engineering Research Center (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "China Academy of Electronics and Information Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "China Academy of Science - Shenyang Institute of Automation (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Shenyang Institute of Automation awarded CAS Visiting Professor title to Humid Sharif in 2012, indicating academic exchange activities. However, the search results do not specify institutional collaboration projects or funding ties between the two entities."
+  },
+  {
+    "risk_item": "China Aerodynamics Research and Development Center (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "China Coast Guard Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "China People's Police University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Chinese Academy of Engineering Physics (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Chinese Academy of Sciences Institute of Computing Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Criminal Investigation Police University of China (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Dalian Naval Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Defence Industries Organization Training and Research Institute (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Indirect",
+    "finding_summary": "Sharif University of Technology maintains indirect ties through its cooperation with Aerospace Industries Organization (AIO), a subsidiary of Defense Industries Organization (DIO). The university has signed a satellite production agreement with AIO and collaborates with IRGC Air Force on smart boat competitions. These military-linked partnerships demonstrate institutional alignment with DIO's ecosystem, though no direct mention of the Training and Research Institute was found in sources."
+  },
+  {
+    "risk_item": "Engineering University of the CAPF (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Explosion and Impact Technology Research Centre (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Indirect",
+    "finding_summary": "Sharif University of Technology and the Explosion and Impact Technology Research Centre (METFAZ/CREST) are both linked through their shared affiliations with Iran's defense infrastructure. While no direct collaboration is documented, multiple sources indicate both institutions work under the umbrella of Iran's Ministry of Defense and Armed Forces Logistics (MODAFL). The UK government sanctions list explicitly states Sharif University provides support to entities involved in nuclear proliferation activities, while METFAZ is identified as a MODAFL-affiliated entity conducting research applicable to Iran's nuclear program. This establishes an indirect institutional connection through shared military research objectives and government oversight."
+  },
+  {
+    "risk_item": "Harbin Engineering University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Harbin Institute of Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Both institutions appear together on a list of 'Universities on Lists of Parties of Concern' published by Iowa State University's compliance office, indicating they're both flagged by regulatory bodies for potential risk associations. The document lists them under entities requiring special scrutiny, though no direct collaboration details are provided."
+  },
+  {
+    "risk_item": "Hefei National Laboratory for Physical Sciences at Microscale (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Hunan University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Imam Hossein University (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Information Engineering University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Institute of Applied Physics (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Direct",
+    "finding_summary": "Sharif University of Technology operates the Sharif Applied Physics Research Center, which is explicitly listed among its research centers. The university's applied physics research activities are documented in connection with military and ballistic missile-related projects under the Iranian government, including collaborations with entities like the Ministry of Defense and Islamic Revolutionary Guard Corps (IRGC)."
+  },
+  {
+    "risk_item": "Institute of NBC Defense (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Iranian Research Organization for Science and Technology (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Jiangnan Social University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Key Laboratory of Information Systems Engineering (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Logistics University of the People's Armed Police Force (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "The Logistics University of the People's Armed Police Force is listed with 'SUT' as a known alias in official Canadian government documents, where 'SUT' corresponds to Sharif University of Technology's common abbreviation. However, no direct institutional collaboration, joint projects, or personnel exchanges between the two universities were identified in available sources. This alias listing suggests potential administrative naming associations but does not demonstrate operational cooperation."
+  },
+  {
+    "risk_item": "Ministry of Public Security's Institute of Forensic Science of China (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Nanjing Army Command College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Nanjing Institute of Information Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Nanjing University of Aeronautics and Astronautics (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Nanjing University of Science and Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "National Defense University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "National University of Defense Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Naval Command College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Naval Petty Officer Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Naval Research Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Naval University of Engineering (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Navy Aviation University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Navy Logistics Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Navy Medical University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Navy Submarine Academy (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "North China Institute of Aerospace Engineering (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "North University of China (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Northwest Institute of Nuclear Technology (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Direct",
+    "finding_summary": "Researchers from the PLA-affiliated Northwest Institute of Nuclear Technology have collaborated with Sharif University of Technology on nuclear-related projects, as documented in a 2024 CNA report analyzing nuclear programs. This indicates direct scientific cooperation between the institutions in sensitive technological domains."
+  },
+  {
+    "risk_item": "Northwestern Polytechnical University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Officers College of the PAP (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "PAP NCO College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Pasteur Institute of Iran (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Peac Institute of Multiscale Science (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "People's Armed Police Command College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "People's Public Security University of China (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Physics Research Center (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Direct",
+    "finding_summary": "Sharif University of Technology directly hosted the Physics Research Center (PHRC) at its Tehran campus, with PHRC using the university's facilities and academic cover for nuclear-related procurement activities. Documentation shows PHRC leveraged Sharif University's reputation to acquire dual-use equipment for uranium enrichment programs, including vacuum systems and laser components. The university's physics department collaborated on magnet purchases that IAEA inspectors later linked to undeclared nuclear activities. Multiple sources confirm Sharif University served as an operational front for PHRC's military nuclear procurement network during the 1990s."
+  },
+  {
+    "risk_item": "Railway Police College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Rocket Force Command College (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Rocket Force Research Institute (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Rocket Force Sergeant School (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Rocket Force University of Engineering (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Shahid Beheshti University (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Indirect",
+    "finding_summary": "Both universities have been sanctioned by multiple governments (UK, EU, US) for involvement in proliferation-sensitive nuclear activities and military research. They collaborated with British universities on drone technology research under IRGC influence, as documented in UK government reports. The Islamic Revolutionary Guard Corps (IRGC) systematically utilizes both institutions for military-related research through its 'Salman Headquarters' program since 2009."
+  },
+  {
+    "risk_item": "Shahid Sattari Air Force University (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Significant Mention",
+    "finding_summary": "Both institutions are deeply involved in Iran's military-industrial complex with overlapping technological focus areas. Sharif University collaborates with IRGC Air Force entities and engages in aerospace/defense research, while Shahid Sattari Air Force University serves as the IRIAF's primary military academy specializing in aerospace engineering and weapons development. Though no direct collaboration is documented, their parallel involvement in sensitive military technologies and shared affiliations with Iranian defense structures suggests potential institutional awareness and possible indirect coordination through military research ecosystems."
+  },
+  {
+    "risk_item": "Sharif University of Technology (Iran)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Direct",
+    "finding_summary": "Sharif University of Technology and Sharif University of Technology (Iran) refer to the same institution. The university was established in 1966 in Tehran, Iran, originally named Aryamehr University of Technology. After Iran's 1979 revolution, it was briefly renamed Tehran University of Technology before adopting its current name to honor Majid Sharif Vaghefi. The institution is consistently identified across sources as Iran's premier STEM university, often called 'the MIT of Iran'. Both names are used interchangeably in official documents and international reports, with the parenthetical '(Iran)' occasionally added for geographical clarity in foreign contexts."
+  },
+  {
+    "risk_item": "Sichuan University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Space Engineering University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Tianjin University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "University of Electronic Science and Technology of China (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "University of International Relations (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "Xi'an Technological University (People's Republic of China)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "27th Scientific Center of the Russian Ministry of Defense (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "33rd Scientific Research and Testing Institute (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  },
+  {
+    "risk_item": "46th TSNII Central Scientific Research Institute (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "Direct",
+    "finding_summary": "Sharif University of Technology (SUT) is explicitly listed alongside 46th TSNII Central Scientific Research Institute in Canadian government security documents as named research organizations posing national security risks. The listing indicates a recognized institutional association between the two entities, though specific project details or collaboration mechanisms are not disclosed in available sources."
+  },
+  {
+    "risk_item": "48th Central Scientific Research Institute (Russia)",
+    "institution_A": "sharif university of technology",
+    "relationship_type": "No Evidence Found"
+  }
+]
